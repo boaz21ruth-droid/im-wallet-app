@@ -7,9 +7,13 @@ class ChatToolBox extends StatelessWidget {
     super.key,
     this.onTapAlbum,
     this.onTapCall,
+    this.onTapGif,
+    this.onTapSticker,
   });
   final Function()? onTapAlbum;
   final Function()? onTapCall;
+  final Function()? onTapGif;
+  final Function()? onTapSticker;
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +28,20 @@ class ChatToolBox extends StatelessWidget {
           text: StrRes.toolboxCall,
           icon: ImageRes.toolboxCall,
           onTap: () => Permissions.cameraAndMicrophone(onTapCall),
+        ),
+      if (onTapGif != null)
+        ToolboxItemInfo(
+          text: 'GIF',
+          icon: ImageRes.toolboxAlbum,
+          onTap: onTapGif,
+          isGif: true,
+        ),
+      if (onTapSticker != null)
+        ToolboxItemInfo(
+          text: StrRes.toolboxSticker,
+          icon: ImageRes.toolboxAlbum,
+          onTap: onTapSticker,
+          isSticker: true,
         ),
     ];
 
@@ -46,6 +64,12 @@ class ChatToolBox extends StatelessWidget {
         ),
         itemBuilder: (_, index) {
           final item = items.elementAt(index);
+          if (item.isGif) {
+            return _buildTextItemView(text: 'GIF', label: 'GIF', onTap: item.onTap);
+          }
+          if (item.isSticker) {
+            return _buildTextItemView(text: '😊', label: item.text, onTap: item.onTap);
+          }
           return _buildItemView(
             icon: item.icon,
             text: item.text,
@@ -71,12 +95,45 @@ class ChatToolBox extends StatelessWidget {
           text.toText..style = Styles.ts_0C1C33_12sp,
         ],
       );
+
+  Widget _buildTextItemView({
+    required String text,
+    required String label,
+    Function()? onTap,
+  }) =>
+      GestureDetector(
+        onTap: onTap,
+        child: Column(
+          children: [
+            Container(
+              width: 58.w,
+              height: 58.h,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              alignment: Alignment.center,
+              child: Text(text, style: TextStyle(fontSize: text.length == 1 ? 28.sp : 18.sp, fontWeight: FontWeight.bold)),
+            ),
+            10.verticalSpace,
+            label.toText..style = Styles.ts_0C1C33_12sp,
+          ],
+        ),
+      );
 }
 
 class ToolboxItemInfo {
   String text;
   String icon;
   Function()? onTap;
+  bool isGif;
+  bool isSticker;
 
-  ToolboxItemInfo({required this.text, required this.icon, this.onTap});
+  ToolboxItemInfo({
+    required this.text,
+    required this.icon,
+    this.onTap,
+    this.isGif = false,
+    this.isSticker = false,
+  });
 }

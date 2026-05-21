@@ -18,7 +18,10 @@ class SetSelfInfoLogic extends GetxController {
 
   @override
   void onClose() {
-    nicknameCtrl.dispose();
+    final ctrl = nicknameCtrl;
+    Future.delayed(const Duration(milliseconds: 500), () {
+      ctrl.dispose();
+    });
     super.onClose();
   }
 

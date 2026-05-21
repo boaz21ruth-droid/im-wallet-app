@@ -134,19 +134,14 @@ class AddContactsBySearchLogic extends GetxController {
     }
 
     UserFullInfo userFullInfo = info;
-    String? tips, content;
     if (int.tryParse(searchKey) != null) {
       if (searchKey.length == 11) {
-        tips = StrRes.phoneNumber;
-        content = userFullInfo.phoneNumber ?? searchKey;
+        return sprintf(StrRes.searchPhoneIs, [userFullInfo.phoneNumber ?? searchKey]);
       } else {
-        tips = StrRes.userID;
-        content = userFullInfo.userID;
+        return sprintf(StrRes.searchIDIs, [userFullInfo.userID]);
       }
     } else {
-      tips = StrRes.searchNicknameIs;
-      content = getShowName(info);
+      return sprintf(StrRes.searchNicknameIs, [getShowName(info)]);
     }
-    return "$tips:$content";
   }
 }

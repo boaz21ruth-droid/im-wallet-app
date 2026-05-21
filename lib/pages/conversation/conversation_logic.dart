@@ -54,10 +54,8 @@ class ConversationLogic extends GetxController {
         EasyLoading.showProgress(p, status: '${StrRes.synchronizing}(${(p * 100.0).truncate()}%)');
       } else if (status == IMSdkStatus.syncEnded || status == IMSdkStatus.syncFailed) {
         EasyLoading.dismiss();
-        if (reInstall) {
-          onRefresh();
-          reInstall = false;
-        }
+        onRefresh();
+        reInstall = false;
       }
     });
     super.onInit();
@@ -229,6 +227,33 @@ class ConversationLogic extends GetxController {
 
   void clearConversations() {
     list.clear();
+  }
+
+  void togglePin(ConversationInfo info) async {
+    try {
+      await OpenIM.iMManager.conversationManager.pinConversation(
+        conversationID: info.conversationID,
+        isPinned: !(info.isPinned ?? false),
+      );
+      onRefresh();
+    } catch (e) {
+      IMViews.showToast(e.toString());
+    }
+  }
+
+  void hideConversation(ConversationInfo info) async {
+    await OpenIM.iMManager.conversationManager.hideConversation(
+      conversationID: info.conversationID,
+    );
+    list.removeWhere((e) => e.conversationID == info.conversationID);
+  }
+
+  void showConversationMenu(ConversationInfo info) {
+    Get.bottomSheet(ConversationMenuSheet(
+      isPinned: info.isPinned ?? false,
+      onPin: () => togglePin(info),
+      onHide: () => hideConversation(info),
+    ));
   }
 
   _request() async {

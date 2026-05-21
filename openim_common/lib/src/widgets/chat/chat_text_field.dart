@@ -13,6 +13,7 @@ class ChatTextField extends StatelessWidget {
   final TextStyle? atStyle;
   final bool enabled;
   final TextAlign textAlign;
+  final VoidCallback? onSend;
 
   const ChatTextField({
     Key? key,
@@ -23,6 +24,7 @@ class ChatTextField extends StatelessWidget {
     this.atStyle,
     this.enabled = true,
     this.textAlign = TextAlign.start,
+    this.onSend,
   }) : super(key: key);
 
   @override
@@ -32,11 +34,13 @@ class ChatTextField extends StatelessWidget {
       focusNode: focusNode,
       controller: controller,
       keyboardType: TextInputType.multiline,
+      textInputAction: TextInputAction.send,
       enabled: enabled,
       autofocus: false,
       minLines: 1,
       maxLines: 4,
       textAlign: textAlign,
+      onSubmitted: (_) => onSend?.call(),
       decoration: InputDecoration(
         border: InputBorder.none,
         isDense: true,

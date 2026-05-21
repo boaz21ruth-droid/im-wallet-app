@@ -86,6 +86,17 @@ class ChatLogic extends SuperController {
   bool _isFirstLoad = true;
 
   final copyTextMap = <String?, String?>{};
+  final quoteMsg = Rxn<Message>();
+
+  // --- 对话内搜索 ---
+  final searchMode = false.obs;
+  final searchResults = <Message>[].obs;
+  final searchQuery = ''.obs;
+  final searchCtrl = TextEditingController();
+
+  // --- 消息回应 ---
+  // targetMsgID → { emoji → [senderID] }
+  final reactions = <String, Map<String, List<String>>>{}.obs;
 
   String? groupOwnerID;
 
@@ -170,6 +181,8 @@ class ChatLogic extends SuperController {
     imLogic.onRecvNewMessage = (Message message) async {
       if (isCurrentChat(message)) {
         if (message.contentType == MessageType.typing) {
+        } else if (_parseReaction(message)) {
+          // reaction 消息只更新 reactions map，不加入消息列表
         } else {
           if (!messageList.contains(message) && !scrollingCacheMessageList.contains(message)) {
             _isReceivedMessageWhenSyncing = true;
@@ -340,13 +353,206 @@ class ChatLogic extends SuperController {
     messageList.refresh();
   }
 
+  String? get quoteSummary {
+    final msg = quoteMsg.value;
+    if (msg == null) return null;
+    final sender = msg.senderNickname ?? '';
+    String content;
+    if (msg.isTextType) {
+      content = msg.textElem?.content ?? '';
+    } else if (msg.isQuoteType) {
+      content = msg.quoteElem?.text ?? '';
+    } else if (msg.isPictureType) {
+      content = '[${StrRes.picture}]';
+    } else if (msg.isVideoType) {
+      content = '[${StrRes.video}]';
+    } else if (msg.isVoiceType) {
+      content = '[${StrRes.voice}]';
+    } else if (msg.isFileType) {
+      content = '[${StrRes.file}]';
+    } else {
+      content = '[${StrRes.unsupportedMessage}]';
+    }
+    return sender.isNotEmpty ? '$sender: $content' : content;
+  }
+
+  void setQuote(Message message) {
+    quoteMsg.value = message;
+    focusNode.requestFocus();
+  }
+
+  void clearQuote() => quoteMsg.value = null;
+
+  // --- 对话内搜索 ---
+  void toggleSearchMode() {
+    searchMode.toggle();
+    if (!searchMode.value) {
+      searchResults.clear();
+      searchQuery.value = '';
+      searchCtrl.clear();
+    }
+  }
+
+  void searchInChat(String keyword) async {
+    searchQuery.value = keyword;
+    if (keyword.trim().isEmpty) {
+      searchResults.clear();
+      return;
+    }
+    final result = await OpenIM.iMManager.messageManager.searchLocalMessages(
+      conversationID: conversationInfo.conversationID,
+      keywordList: [keyword.trim()],
+      keywordListMatchType: 0,
+      count: 50,
+      pageIndex: 1,
+    );
+    final msgs = result.searchResultItems
+            ?.expand<Message>((e) => e.messageList ?? [])
+            .toList() ??
+        <Message>[];
+    searchResults.assignAll(msgs);
+  }
+
+  void scrollToSearchResult(Message msg) {
+    final index = messageList.indexWhere((m) => m.clientMsgID == msg.clientMsgID);
+    if (index >= 0 && scrollController.hasClients) {
+      final maxOffset = scrollController.position.maxScrollExtent;
+      final offset = maxOffset * (messageList.length - 1 - index) / (messageList.length);
+      scrollController.animateTo(
+        offset.clamp(0.0, maxOffset),
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+    toggleSearchMode();
+  }
+
+  // --- 消息回应 ---
+  void _applyReaction(String targetID, String emoji, String senderID) {
+    final m = Map<String, List<String>>.from(reactions[targetID] ?? {});
+    final users = List<String>.from(m[emoji] ?? []);
+    if (!users.contains(senderID)) users.add(senderID);
+    m[emoji] = users;
+    reactions[targetID] = m;
+    reactions.refresh();
+  }
+
+  bool _parseReaction(Message msg) {
+    if (msg.contentType != MessageType.custom) return false;
+    try {
+      final raw = json.decode(msg.customElem?.data ?? '{}');
+      if (raw['customType'] != CustomMessageType.emoji) return false;
+      final data = raw['data'] as Map<String, dynamic>;
+      _applyReaction(
+        data['targetMsgID'] as String,
+        data['emoji'] as String,
+        msg.sendID ?? '',
+      );
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void sendReaction(Message targetMsg, String emoji) async {
+    final payload = json.encode({
+      'customType': CustomMessageType.emoji,
+      'data': {'targetMsgID': targetMsg.clientMsgID, 'emoji': emoji},
+    });
+    final msg = await OpenIM.iMManager.messageManager.createCustomMessage(
+      data: payload,
+      extension: '',
+      description: emoji,
+    );
+    await _sendMessage(msg);
+    _applyReaction(targetMsg.clientMsgID!, emoji, OpenIM.iMManager.userID);
+  }
+
+  // --- GIF ---
+  void sendGif(String gifUrl, int width, int height) async {
+    final payload = json.encode({
+      'customType': CustomMessageType.gif,
+      'data': {'gifUrl': gifUrl, 'width': width, 'height': height},
+    });
+    final msg = await OpenIM.iMManager.messageManager.createCustomMessage(
+      data: payload,
+      extension: '',
+      description: '[GIF]',
+    );
+    _sendMessage(msg);
+  }
+
+  // --- 贴纸 ---
+  void sendSticker(String stickerUrl, String emoji) async {
+    final payload = json.encode({
+      'customType': CustomMessageType.sticker,
+      'data': {'stickerUrl': stickerUrl, 'emoji': emoji},
+    });
+    final msg = await OpenIM.iMManager.messageManager.createCustomMessage(
+      data: payload,
+      extension: '',
+      description: '[贴纸]',
+    );
+    _sendMessage(msg);
+  }
+
+  void onLongPressMessage(Message message) {
+    if (message.isNotificationType) return;
+    Get.bottomSheet(
+      MessageActionSheet(
+        onReply: isInvalidGroup ? null : () => setQuote(message),
+        onForward: () => forwardMessage(message),
+        onCopy: message.isTextType || message.isQuoteType ? () => _copyMessageText(message) : null,
+        onDelete: () => _deleteMessage(message),
+        onReact: (emoji) => sendReaction(message, emoji),
+      ),
+      backgroundColor: Styles.c_FFFFFF,
+    );
+  }
+
+  void _copyMessageText(Message message) {
+    final text = message.isQuoteType
+        ? message.quoteElem?.text ?? ''
+        : copyTextMap[message.clientMsgID] ?? message.textElem?.content ?? '';
+    Clipboard.setData(ClipboardData(text: text));
+    IMViews.showToast(StrRes.copySuccessfully);
+  }
+
+  void _deleteMessage(Message message) {
+    OpenIM.iMManager.messageManager.deleteMessageFromLocalAndSvr(
+      conversationID: conversationInfo.conversationID,
+      clientMsgID: message.clientMsgID!,
+    );
+    messageList.remove(message);
+  }
+
+  void forwardMessage(Message message) async {
+    final result = await AppNavigator.startSelectContacts(action: SelAction.forward);
+    if (result == null) return;
+    final checkedList = result['checkedList'] as List? ?? [];
+    for (final info in checkedList) {
+      final uid = IMUtils.convertCheckedToUserID(info);
+      final gid = IMUtils.convertCheckedToGroupID(info);
+      await sendForwardMsg(message, userId: uid, groupId: gid);
+    }
+    if (checkedList.isNotEmpty) IMViews.showToast(StrRes.sendSuccessfully);
+  }
+
   void sendTextMsg() async {
     var content = IMUtils.safeTrim(inputCtrl.text);
     if (content.isEmpty) return;
-    Message message = await OpenIM.iMManager.messageManager.createTextMessage(
-      text: content,
-    );
-
+    Message message;
+    if (quoteMsg.value != null) {
+      message = await OpenIM.iMManager.messageManager.createQuoteMessage(
+        text: content,
+        quoteMsg: quoteMsg.value!,
+      );
+      clearQuote();
+    } else {
+      message = await OpenIM.iMManager.messageManager.createTextMessage(
+        text: content,
+      );
+    }
     _sendMessage(message);
   }
 
@@ -750,6 +956,7 @@ class ChatLogic extends SuperController {
     _clearUnreadCount();
     inputCtrl.dispose();
     focusNode.dispose();
+    searchCtrl.dispose();
     forceCloseToolbox.close();
     conversationSub.cancel();
     sendStatusSub.close();
@@ -1016,6 +1223,9 @@ class ChatLogic extends SuperController {
       return false;
     }
     list = result.messageList!;
+    // 分离 reaction 消息
+    final reactionMsgs = list.where(_parseReaction).toList();
+    list = list.where((m) => !reactionMsgs.contains(m)).toList();
     if (_isFirstLoad) {
       _isFirstLoad = false;
       // remove the message that has been timed down

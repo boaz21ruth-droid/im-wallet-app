@@ -144,19 +144,27 @@ class _ChatInputBoxState extends State<ChatInputBox> /*with TickerProviderStateM
   }
 
   Widget get _textFiled => Container(
-        margin: EdgeInsets.only(top: 10.h, bottom: _showQuoteView ? 4.h : 10.h),
+        margin: EdgeInsets.symmetric(vertical: 8.h),
         decoration: BoxDecoration(
           color: Styles.c_FFFFFF,
           borderRadius: BorderRadius.circular(4.r),
         ),
-        child: ChatTextField(
-          controller: widget.controller,
-          focusNode: widget.focusNode,
-          style: widget.style ?? Styles.ts_0C1C33_17sp,
-          atStyle: widget.atStyle ?? Styles.ts_0089FF_17sp,
-          enabled: widget.enabled,
-          hintText: widget.hintText,
-          textAlign: widget.enabled ? TextAlign.start : TextAlign.center,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (_showQuoteView) _QuotePreview(content: widget.quoteContent!, onClear: widget.onClearQuote),
+            ChatTextField(
+              controller: widget.controller,
+              focusNode: widget.focusNode,
+              style: widget.style ?? Styles.ts_0C1C33_17sp,
+              atStyle: widget.atStyle ?? Styles.ts_0089FF_17sp,
+              enabled: widget.enabled,
+              hintText: widget.hintText,
+              textAlign: widget.enabled ? TextAlign.start : TextAlign.center,
+              onSend: send,
+            ),
+          ],
         ),
       );
 
@@ -200,6 +208,40 @@ class _ChatInputBoxState extends State<ChatInputBox> /*with TickerProviderStateM
   focus() => FocusScope.of(context).requestFocus(widget.focusNode);
 
   unfocus() => FocusScope.of(context).requestFocus(FocusNode());
+}
+
+class _QuotePreview extends StatelessWidget {
+  const _QuotePreview({required this.content, this.onClear});
+  final String content;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(left: 8.w, right: 4.w, top: 6.h, bottom: 4.h),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Styles.c_E8EAEF, width: 0.5.h)),
+      ),
+      child: Row(
+        children: [
+          Container(width: 3.w, height: 32.h, color: Styles.c_0089FF),
+          8.horizontalSpace,
+          Expanded(
+            child: Text(
+              content,
+              style: Styles.ts_8E9AB0_14sp,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          GestureDetector(
+            onTap: onClear,
+            child: Icon(Icons.close, size: 18.r, color: Styles.c_8E9AB0),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SubView extends StatelessWidget {

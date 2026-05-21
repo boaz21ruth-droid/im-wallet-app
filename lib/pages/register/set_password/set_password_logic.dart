@@ -21,9 +21,14 @@ class SetPasswordLogic extends GetxController {
 
   @override
   void onClose() {
-    nicknameCtrl.dispose();
-    pwdCtrl.dispose();
-    pwdAgainCtrl.dispose();
+    final nickname = nicknameCtrl;
+    final pwd = pwdCtrl;
+    final pwdAgain = pwdAgainCtrl;
+    Future.delayed(const Duration(milliseconds: 500), () {
+      nickname.dispose();
+      pwd.dispose();
+      pwdAgain.dispose();
+    });
     super.onClose();
   }
 

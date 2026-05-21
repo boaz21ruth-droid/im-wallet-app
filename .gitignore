@@ -1,0 +1,27 @@
+# Flutter/Dart
+.dart_tool/
+build/
+*.g.dart
+
+# iOS generated
+ios/.symlinks/
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Flutter/Flutter.podspec
+ios/Flutter/ephemeral/
+ios/Pods/
+
+# Android generated
+android/local.properties
+android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+
+# pubspec lock (keep for reproducible builds) — remove this line to ignore it
+# pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# macOS
+.DS_Store

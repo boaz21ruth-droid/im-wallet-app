@@ -21,8 +21,12 @@ class RegisterLogic extends GetxController {
 
   @override
   void onClose() {
-    phoneCtrl.dispose();
-    invitationCodeCtrl.dispose();
+    final phone = phoneCtrl;
+    final invitation = invitationCodeCtrl;
+    Future.delayed(const Duration(milliseconds: 500), () {
+      phone.dispose();
+      invitation.dispose();
+    });
     super.onClose();
   }
 

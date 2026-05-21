@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Colors, Icons, Icon;
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
@@ -106,6 +107,8 @@ class TitleBar extends StatelessWidget implements PreferredSizeWidget {
     Function()? onClickCallBtn,
     Function()? onClickMoreBtn,
     Function()? onCloseMultiModel,
+    Function()? onClickSearchBtn,
+    List<Widget>? actions,
   })  : backgroundColor = null,
         height = 48.h,
         showUnderline = true,
@@ -149,10 +152,17 @@ class TitleBar extends StatelessWidget implements PreferredSizeWidget {
                   ..height = 24.h
                   ..onTap = (() => Get.back()))),
         right = SizedBox(
-            width: 16.w + (showCallBtn ? 56.w : 28.w),
+            width: 16.w + (showCallBtn ? 56.w : 28.w) + (onClickSearchBtn != null ? 36.w : 0),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (onClickSearchBtn != null) ...[
+                  GestureDetector(
+                    onTap: onClickSearchBtn,
+                    child: const Icon(Icons.search, color: Colors.black87, size: 22),
+                  ),
+                  8.horizontalSpace,
+                ],
                 if (showCallBtn)
                   ImageRes.callBack.toImage
                     ..width = 28.w

@@ -71,8 +71,10 @@ class ConversationPage extends StatelessWidget {
   }
 
   Widget _buildItemView(ConversationInfo info) => Ink(
+        color: (info.isPinned ?? false) ? Styles.c_F0F2F6 : null,
         child: InkWell(
           onTap: () => logic.toChat(conversationInfo: info),
+          onLongPress: () => logic.showConversationMenu(info),
           child: Stack(
             children: [
               Container(
@@ -143,6 +145,12 @@ class ConversationPage extends StatelessWidget {
                   ],
                 ),
               ),
+              if (info.isPinned ?? false)
+                Positioned(
+                  top: 4.h,
+                  right: 4.w,
+                  child: Icon(Icons.push_pin, size: 12.r, color: Styles.c_8E9AB0),
+                ),
             ],
           ),
         ),

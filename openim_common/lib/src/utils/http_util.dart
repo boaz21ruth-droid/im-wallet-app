@@ -78,7 +78,15 @@ class HttpUtil {
       }
     } catch (error) {
       if (error is DioException) {
-        final errorMsg = '接口：$path  信息：${error.message}';
+        // Try to extract the server's errMsg from the response body (e.g. HTTP 400/401)
+        final respData = error.response?.data;
+        String errorMsg;
+        if (respData is Map && (respData['errMsg'] as String?)?.isNotEmpty == true) {
+          errorMsg = respData['errMsg'] as String;
+        } else {
+          errorMsg = '接口：$path  信息：${error.message}';
+        }
+        Logger.print('[http-error] $path → ${error.response?.statusCode} $errorMsg');
         if (showErrorToast) IMViews.showToast(errorMsg);
         return Future.error(errorMsg);
       }

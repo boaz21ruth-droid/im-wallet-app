@@ -260,6 +260,8 @@ class StrRes {
 
   static String get toolboxCall => 'toolboxCall'.tr;
 
+  static String get toolboxSticker => 'toolboxSticker'.tr;
+
   static String get toolboxCamera => 'toolboxCamera'.tr;
 
   static String get toolboxCard => 'toolboxCard'.tr;
@@ -317,6 +319,18 @@ class StrRes {
   static String get menuForward => 'menuForward'.tr;
 
   static String get menuReply => 'menuReply'.tr;
+
+  static String get menuReact => 'menuReact'.tr;
+
+  static String get pinConversation => 'pinConversation'.tr;
+
+  static String get unpinConversation => 'unpinConversation'.tr;
+
+  static String get hideConversation => 'hideConversation'.tr;
+
+  static String get searchInChat => 'searchInChat'.tr;
+
+  static String get noSearchResults => 'noSearchResults'.tr;
 
   static String get menuMulti => 'menuMulti'.tr;
 

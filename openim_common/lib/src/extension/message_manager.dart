@@ -75,6 +75,8 @@ extension MessageExt on Message {
 
   bool get isTextType => contentType == MessageType.text;
 
+  bool get isQuoteType => contentType == MessageType.quote;
+
   bool get isPictureType => contentType == MessageType.picture;
 
   bool get isVoiceType => contentType == MessageType.voice;
@@ -112,6 +114,9 @@ class CustomMessageType {
   static const deletedByFriend = 911;
   static const removedFromGroup = 912;
   static const groupDisbanded = 913;
+
+  static const gif = 906;
+  static const sticker = 907;
 }
 
 extension PublicUserInfoExt on PublicUserInfo {

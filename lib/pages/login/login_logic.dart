@@ -99,10 +99,19 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
 
   @override
   void onClose() {
-    phoneCtrl.dispose();
-    pwdCtrl.dispose();
-    verificationCodeCtrl.dispose();
-    tabController.dispose();
+    phoneCtrl.removeListener(_onChanged);
+    pwdCtrl.removeListener(_onChanged);
+    verificationCodeCtrl.removeListener(_onChanged);
+    final tab = tabController;
+    final phone = phoneCtrl;
+    final pwd = pwdCtrl;
+    final code = verificationCodeCtrl;
+    Future.delayed(const Duration(milliseconds: 500), () {
+      phone.dispose();
+      pwd.dispose();
+      code.dispose();
+      tab.dispose();
+    });
     super.onClose();
   }
 
@@ -172,6 +181,7 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
         password: isPasswordLogin.value ? password : null,
         verificationCode: isPasswordLogin.value ? null : code,
       );
+      if (isClosed) return false;
       final account = {
         "areaCode": areaCode.value,
         "phoneNumber": phoneCtrl.text,
@@ -193,6 +203,20 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
       return true;
     } catch (e, s) {
       Logger.print('login e: $e $s');
+      if (isClosed) return false;
+      if (e case (int errCode, String errMsg)) {
+        // errCode 1004 = account not found in im-business
+        if (errCode == 1004 && errMsg.contains('record not found')) {
+          IMViews.showToast('账号未注册，请先注册');
+          Future.delayed(800.milliseconds, () {
+            if (!isClosed) AppNavigator.startRegister();
+          });
+        } else {
+          IMViews.showToast(errMsg.isNotEmpty ? errMsg : '登录失败，请重试');
+        }
+      } else {
+        IMViews.showToast('登录失败，请重试');
+      }
     }
     return false;
   }

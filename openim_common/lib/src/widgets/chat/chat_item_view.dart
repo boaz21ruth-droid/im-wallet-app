@@ -90,6 +90,7 @@ class ChatItemView extends StatefulWidget {
     this.onVisibleTrulyText,
     this.onFailedToResend,
     this.onClickItemView,
+    this.onLongPressMessage,
     required this.onTapUserProfile,
   }) : super(key: key);
   final ItemViewBuilder? mediaItemBuilder;
@@ -123,6 +124,7 @@ class ChatItemView extends StatefulWidget {
   final ValueChanged<({String userID, String name, String? faceURL, String? groupID})> onTapUserProfile;
 
   final Function()? onFailedToResend;
+  final Function(Message message)? onLongPressMessage;
   @override
   State<ChatItemView> createState() => _ChatItemViewState();
 }
@@ -172,12 +174,65 @@ class _ChatItemViewState extends State<ChatItemView> {
         textScaleFactor: widget.textScaleFactor,
         onVisibleTrulyText: widget.onVisibleTrulyText,
       );
+    } else if (_message.isQuoteType) {
+      isBubbleBg = true;
+      final quoteElem = _message.quoteElem!;
+      final originalMsg = quoteElem.quoteMessage;
+      final originalSender = originalMsg?.senderNickname ?? '';
+      final originalContent = _quotePreviewText(originalMsg);
+      child = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+            decoration: BoxDecoration(
+              color: _isISend ? Styles.c_0089FF_opacity20 : Styles.c_E8EAEF,
+              borderRadius: BorderRadius.circular(4.r),
+              border: Border(
+                left: BorderSide(
+                  color: _isISend ? Styles.c_0089FF : Styles.c_8E9AB0,
+                  width: 3.w,
+                ),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (originalSender.isNotEmpty)
+                  Text(originalSender, style: Styles.ts_0089FF_14sp, maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(originalContent, style: Styles.ts_8E9AB0_14sp, maxLines: 2, overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+          4.verticalSpace,
+          ChatText(
+            text: quoteElem.text ?? '',
+            patterns: widget.patterns,
+            textScaleFactor: widget.textScaleFactor,
+            onVisibleTrulyText: widget.onVisibleTrulyText,
+          ),
+        ],
+      );
     } else if (_message.isPictureType) {
       child = widget.mediaItemBuilder?.call(context, _message) ??
           ChatPictureView(
             isISend: _isISend,
             message: _message,
           );
+    } else if (_message.contentType == MessageType.custom) {
+      final typeInfo = widget.customTypeBuilder?.call(context, _message);
+      if (typeInfo != null) {
+        if (!typeInfo.needChatItemContainer) {
+          return ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: typeInfo.customView,
+          );
+        }
+        isBubbleBg = typeInfo.needBubbleBackground;
+        child = typeInfo.customView;
+      }
     } else if (_message.isNotificationType) {
       if (_message.contentType == MessageType.groupInfoSetAnnouncementNotification) {
         final map = json.decode(_message.notificationElem!.detail!);
@@ -223,8 +278,20 @@ class _ChatItemViewState extends State<ChatItemView> {
       child: GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: widget.onClickItemView,
+        onLongPress: () => widget.onLongPressMessage?.call(_message),
         child: child ?? ChatText(text: StrRes.unsupportedMessage),
       ),
     );
+  }
+
+  String _quotePreviewText(Message? msg) {
+    if (msg == null) return '';
+    if (msg.isTextType) return msg.textElem?.content ?? '';
+    if (msg.isQuoteType) return msg.quoteElem?.text ?? '';
+    if (msg.isPictureType) return '[${StrRes.picture}]';
+    if (msg.isVideoType) return '[${StrRes.video}]';
+    if (msg.isVoiceType) return '[${StrRes.voice}]';
+    if (msg.isFileType) return '[${StrRes.file}]';
+    return '[${StrRes.unsupportedMessage}]';
   }
 }

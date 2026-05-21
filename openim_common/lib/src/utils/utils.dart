@@ -786,6 +786,10 @@ class IMUtils {
               case CustomMessageType.meeting:
                 map['data']['viewType'] = CustomMessageType.meeting;
                 return map['data'];
+              case CustomMessageType.gif:
+                return {'viewType': CustomMessageType.gif, 'data': map['data']};
+              case CustomMessageType.sticker:
+                return {'viewType': CustomMessageType.sticker, 'data': map['data']};
               case CustomMessageType.deletedByFriend:
               case CustomMessageType.blockedByFriend:
               case CustomMessageType.removedFromGroup:
