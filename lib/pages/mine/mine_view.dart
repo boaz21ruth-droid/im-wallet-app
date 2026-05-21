@@ -3,10 +3,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
 
+import '../../core/controller/theme_controller.dart';
 import 'mine_logic.dart';
 
 class MinePage extends StatelessWidget {
   final logic = Get.find<MineLogic>();
+  final themeCtrl = Get.find<ThemeController>();
 
   MinePage({super.key});
 
@@ -35,6 +37,7 @@ class MinePage extends StatelessWidget {
               onTap: logic.viewMyInfo,
               isTopRadius: true,
             ),
+            _buildDarkModeToggle(),
             _buildItemView(
               icon: ImageRes.accountSetup,
               label: StrRes.accountSetup,
@@ -104,6 +107,31 @@ class MinePage extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      );
+
+  Widget _buildDarkModeToggle() => Container(
+        margin: EdgeInsets.symmetric(horizontal: 16.w),
+        child: Ink(
+          decoration: BoxDecoration(color: Styles.c_FFFFFF),
+          child: Container(
+            height: 56.h,
+            padding: EdgeInsets.only(left: 12.w, right: 16.w),
+            child: Row(
+              children: [
+                Icon(Icons.dark_mode_outlined, size: 24.r, color: Styles.c_0C1C33),
+                11.horizontalSpace,
+                '深色模式'.toText..style = Styles.ts_0C1C33_17sp,
+                const Spacer(),
+                Obx(() => Switch(
+                      value: themeCtrl.isDark.value,
+                      onChanged: (_) => themeCtrl.toggle(),
+                      activeThumbColor: Styles.c_0089FF,
+                      activeTrackColor: Styles.c_0089FF_opacity50,
+                    )),
+              ],
+            ),
+          ),
         ),
       );
 

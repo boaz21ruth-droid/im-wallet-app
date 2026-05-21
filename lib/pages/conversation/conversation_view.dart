@@ -26,31 +26,17 @@ class ConversationPage extends StatelessWidget {
               onAddGroup: logic.addGroup,
               onCreateGroup: logic.createGroup,
               left: Expanded(
-                flex: 2,
                 child: Row(
-                  mainAxisSize: MainAxisSize.max,
                   children: [
-                    AvatarView(
-                      width: 42.w,
-                      height: 42.h,
-                      text: im.userInfo.value.nickname,
-                      url: im.userInfo.value.faceURL,
-                    ),
-                    10.horizontalSpace,
-                    if (null != im.userInfo.value.nickname)
-                      Flexible(
-                        child: im.userInfo.value.nickname!.toText
-                          ..style = Styles.ts_0C1C33_17sp
-                          ..maxLines = 1
-                          ..overflow = TextOverflow.ellipsis,
-                      ),
-                    10.horizontalSpace,
+                    '消息'.toText..style = Styles.ts_0C1C33_20sp_semibold,
+                    8.horizontalSpace,
                     if (null != logic.imSdkStatus && (!logic.reInstall || logic.isFailedSdkStatus))
                       Flexible(
-                          child: SyncStatusView(
-                        isFailed: logic.isFailedSdkStatus,
-                        statusStr: logic.imSdkStatus!,
-                      )),
+                        child: SyncStatusView(
+                          isFailed: logic.isFailedSdkStatus,
+                          statusStr: logic.imSdkStatus!,
+                        ),
+                      ),
                   ],
                 ),
               )),

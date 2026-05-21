@@ -6,14 +6,23 @@ import 'package:openim_common/openim_common.dart';
 import 'favorites_logic.dart';
 
 class FavoritesPage extends StatelessWidget {
+  final bool asTab;
   final logic = Get.find<FavoritesLogic>();
 
-  FavoritesPage({super.key});
+  FavoritesPage({super.key, this.asTab = false});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: TitleBar.back(title: StrRes.myFavorites),
+      appBar: asTab
+          ? AppBar(
+              backgroundColor: Styles.c_FFFFFF,
+              elevation: 0,
+              title: StrRes.myFavorites.toText..style = Styles.ts_0C1C33_20sp_semibold,
+              centerTitle: false,
+              automaticallyImplyLeading: false,
+            )
+          : TitleBar.back(title: StrRes.myFavorites),
       backgroundColor: Styles.c_F8F9FA,
       body: Obx(() {
         if (logic.items.isEmpty) {

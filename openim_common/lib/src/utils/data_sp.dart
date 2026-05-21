@@ -221,6 +221,17 @@ class DataSp {
     return List<String>.from(SpUtil().getStringList(getKey(_favorites), defValue: []) ?? []);
   }
 
+  // --- 深色主题 ---
+  static const _isDarkTheme = 'isDarkTheme';
+
+  static Future<bool>? setIsDark(bool isDark) {
+    return SpUtil().putBool(_isDarkTheme, isDark);
+  }
+
+  static bool getIsDark() {
+    return SpUtil().getBool(_isDarkTheme, defValue: false) ?? false;
+  }
+
   // --- 群公告已读 ---
   static const _announcementDismissed = '%s_announcementDismissed_%s';
 

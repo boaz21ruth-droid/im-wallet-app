@@ -1,43 +1,91 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
+import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
 
+import '../calls/calls_view.dart';
 import '../contacts/contacts_view.dart';
 import '../conversation/conversation_view.dart';
+import '../mine/favorites/favorites_view.dart';
 import '../mine/mine_view.dart';
 import 'home_logic.dart';
-import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
 
 class HomePage extends StatelessWidget {
   final logic = Get.find<HomeLogic>();
+
   HomePage({super.key});
 
   List<PersistentTabConfig> _tabs() => [
         PersistentTabConfig(
           screen: ConversationPage(),
           item: ItemConfig(
-            icon: _setupIcon(ImageRes.homeTab1Sel.toImage, logic.unreadMsgCount.value),
-            inactiveIcon: _setupIcon(ImageRes.homeTab1Nor.toImage, logic.unreadMsgCount.value),
+            icon: _setupIcon(
+              const Icon(Icons.chat_bubble, size: 22),
+              logic.unreadMsgCount.value,
+            ),
+            inactiveIcon: _setupIcon(
+              const Icon(Icons.chat_bubble_outline, size: 22),
+              logic.unreadMsgCount.value,
+            ),
             title: StrRes.home,
-            textStyle: Styles.ts_0089FF_10sp_semibold,
+            activeForegroundColor: Colors.white,
+            inactiveForegroundColor: Styles.c_8E9AB0,
+            activeColorSecondary: Styles.c_0089FF,
+            textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+          ),
+        ),
+        PersistentTabConfig(
+          screen: CallsPage(),
+          item: ItemConfig(
+            icon: const Icon(Icons.call, size: 22),
+            inactiveIcon: const Icon(Icons.call_outlined, size: 22),
+            title: '通话',
+            activeForegroundColor: Colors.white,
+            inactiveForegroundColor: Styles.c_8E9AB0,
+            activeColorSecondary: Styles.c_0089FF,
+            textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
           ),
         ),
         PersistentTabConfig(
           screen: ContactsPage(),
           item: ItemConfig(
-            icon: _setupIcon(ImageRes.homeTab2Sel.toImage, logic.unhandledCount.value),
-            inactiveIcon: _setupIcon(ImageRes.homeTab2Nor.toImage, logic.unhandledCount.value),
+            icon: _setupIcon(
+              const Icon(Icons.people, size: 22),
+              logic.unhandledCount.value,
+            ),
+            inactiveIcon: _setupIcon(
+              const Icon(Icons.people_outline, size: 22),
+              logic.unhandledCount.value,
+            ),
             title: StrRes.contacts,
-            textStyle: Styles.ts_0089FF_10sp_semibold,
+            activeForegroundColor: Colors.white,
+            inactiveForegroundColor: Styles.c_8E9AB0,
+            activeColorSecondary: Styles.c_0089FF,
+            textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+          ),
+        ),
+        PersistentTabConfig(
+          screen: FavoritesPage(asTab: true),
+          item: ItemConfig(
+            icon: const Icon(Icons.bookmark, size: 22),
+            inactiveIcon: const Icon(Icons.bookmark_border, size: 22),
+            title: '收藏',
+            activeForegroundColor: Colors.white,
+            inactiveForegroundColor: Styles.c_8E9AB0,
+            activeColorSecondary: Styles.c_0089FF,
+            textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
           ),
         ),
         PersistentTabConfig(
           screen: MinePage(),
           item: ItemConfig(
-            icon: ImageRes.homeTab4Sel.toImage,
-            inactiveIcon: ImageRes.homeTab4Nor.toImage,
+            icon: const Icon(Icons.person, size: 22),
+            inactiveIcon: const Icon(Icons.person_outline, size: 22),
             title: StrRes.mine,
-            textStyle: Styles.ts_0089FF_10sp_semibold,
+            activeForegroundColor: Colors.white,
+            inactiveForegroundColor: Styles.c_8E9AB0,
+            activeColorSecondary: Styles.c_0089FF,
+            textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
           ),
         ),
       ];
@@ -66,12 +114,16 @@ class HomePage extends StatelessWidget {
       body: Obx(
         () => PersistentTabView(
           tabs: _tabs(),
-          navBarBuilder: (navBarConfig) => Style1BottomNavBar(
+          navBarBuilder: (navBarConfig) => Style8BottomNavBar(
             navBarConfig: navBarConfig,
-            navBarDecoration: const NavBarDecoration(
-              color: Colors.white,
+            navBarDecoration: NavBarDecoration(
+              color: Styles.c_FFFFFF,
               boxShadow: [
-                BoxShadow(color: Colors.black12, blurRadius: 0.5, spreadRadius: 0.5),
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 4,
+                  offset: const Offset(0, -1),
+                ),
               ],
             ),
           ),
