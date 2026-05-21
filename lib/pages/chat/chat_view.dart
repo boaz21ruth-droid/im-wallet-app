@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'chat_logic.dart';
 import 'gif_picker.dart';
+import 'poll_bubble.dart';
 
 class ChatPage extends StatelessWidget {
   final logic = Get.find<ChatLogic>(tag: GetTags.chat);
@@ -182,6 +183,18 @@ class ChatPage extends StatelessWidget {
           false,
           true,
         );
+      } else if (viewType == CustomMessageType.poll) {
+        return CustomTypeInfo(
+          PollBubble.fromJson(
+            rawData: message.customElem!.data!,
+            myUserID: OpenIM.iMManager.userID,
+            onVote: (idx) => logic.votePoll(message, idx),
+          ),
+          false,
+          true,
+        );
+      } else if (viewType == CustomMessageType.pollVote) {
+        return CustomTypeInfo(const SizedBox.shrink(), false, false);
       } else if (viewType == CustomMessageType.groupFile) {
         final fileData = data['data'] as Map<String, dynamic>? ?? {};
         final name = fileData['name'] as String? ?? '未知文件';
@@ -289,6 +302,7 @@ class ChatPage extends StatelessWidget {
                     onTapGif: () => _showGifPicker(context),
                     onTapSticker: () => _showStickerPanel(context),
                     onTapFile: logic.isGroupChat ? logic.sendGroupFile : null,
+                    onTapPoll: logic.isGroupChat ? logic.createPoll : null,
                   ),
                   voiceRecordBar: const SizedBox(),
                 )),

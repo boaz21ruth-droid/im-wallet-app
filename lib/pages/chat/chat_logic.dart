@@ -15,6 +15,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:sprintf/sprintf.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:uuid/uuid.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:wechat_camera_picker/wechat_camera_picker.dart';
 import 'package:openim_live/openim_live.dart';
@@ -25,6 +26,7 @@ import '../../core/im_callback.dart';
 import '../../routes/app_navigator.dart';
 import '../contacts/select_contacts/select_contacts_logic.dart';
 import '../conversation/conversation_logic.dart';
+import 'create_poll_sheet.dart';
 import 'group_setup/group_member_list/group_member_list_logic.dart';
 
 class ChatLogic extends SuperController {
@@ -188,6 +190,8 @@ class ChatLogic extends SuperController {
           // reaction 消息只更新 reactions map，不加入消息列表
         } else if (_parseEditEvent(message)) {
           // edit 事件只更新目标消息内容，不加入消息列表
+        } else if (_parsePollVoteEvent(message)) {
+          // 投票事件只更新目标 poll 消息的 voterIDs，不加入消息列表
         } else if (message.isRevokeType) {
           _handleRevokeNotification(message);
         } else {
@@ -443,6 +447,119 @@ class ChatLogic extends SuperController {
       if (raw['customType'] != CustomMessageType.editEvent) return false;
       final data = raw['data'] as Map<String, dynamic>;
       _applyEdit(data['targetMsgID'] as String, data['newText'] as String);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // --- 投票 ---
+  void createPoll() async {
+    final result = await Get.bottomSheet<CreatePollResult>(
+      const CreatePollSheet(),
+      isScrollControlled: true,
+    );
+    if (result == null) return;
+
+    final pollId = const Uuid().v4();
+    final payload = json.encode({
+      'customType': CustomMessageType.poll,
+      'data': {
+        'pollId': pollId,
+        'question': result.question,
+        'options': result.options.map((text) => {'text': text, 'voterIDs': <String>[]}).toList(),
+        'multiVote': result.multiVote,
+        'creatorID': OpenIM.iMManager.userID,
+        'createdAt': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      },
+    });
+    final msg = await OpenIM.iMManager.messageManager.createCustomMessage(
+      data: payload,
+      extension: '',
+      description: '[投票] ${result.question}',
+    );
+    await _sendMessage(msg);
+  }
+
+  void votePoll(Message pollMsg, int optionIndex) async {
+    final myID = OpenIM.iMManager.userID;
+    final rawStr = pollMsg.customElem?.data ?? '{}';
+    final raw = json.decode(rawStr) as Map<String, dynamic>;
+    final pollData = raw['data'] as Map<String, dynamic>;
+    final options = (pollData['options'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    final multiVote = pollData['multiVote'] as bool? ?? false;
+
+    final alreadyVoted = options.any((o) => (o['voterIDs'] as List).contains(myID));
+    if (!multiVote && alreadyVoted) return;
+    if (multiVote && (options[optionIndex]['voterIDs'] as List).contains(myID)) return;
+
+    _applyVote(pollMsg.clientMsgID!, optionIndex, myID);
+
+    final votePayload = json.encode({
+      'customType': CustomMessageType.pollVote,
+      'data': {
+        'pollMsgID': pollMsg.clientMsgID,
+        'optionIndex': optionIndex,
+        'voterID': myID,
+      },
+    });
+    try {
+      final voteMsg = await OpenIM.iMManager.messageManager.createCustomMessage(
+        data: votePayload,
+        extension: '',
+        description: '',
+      );
+      await _sendMessage(voteMsg);
+    } catch (e) {
+      _removeVote(pollMsg.clientMsgID!, optionIndex, myID);
+      IMViews.showToast('投票失败，请重试');
+    }
+  }
+
+  void _applyVote(String pollMsgID, int optionIndex, String voterID) {
+    final idx = messageList.indexWhere((m) => m.clientMsgID == pollMsgID);
+    if (idx < 0) return;
+    try {
+      final raw = json.decode(messageList[idx].customElem!.data!) as Map<String, dynamic>;
+      final options = (raw['data']['options'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      if (optionIndex < options.length) {
+        final voters = options[optionIndex]['voterIDs'] as List;
+        if (!voters.contains(voterID)) {
+          voters.add(voterID);
+          raw['data']['options'] = options;
+          messageList[idx].customElem!.data = json.encode(raw);
+          messageList.refresh();
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _removeVote(String pollMsgID, int optionIndex, String voterID) {
+    final idx = messageList.indexWhere((m) => m.clientMsgID == pollMsgID);
+    if (idx < 0) return;
+    try {
+      final raw = json.decode(messageList[idx].customElem!.data!) as Map<String, dynamic>;
+      final options = (raw['data']['options'] as List).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      if (optionIndex < options.length) {
+        (options[optionIndex]['voterIDs'] as List).remove(voterID);
+        raw['data']['options'] = options;
+        messageList[idx].customElem!.data = json.encode(raw);
+        messageList.refresh();
+      }
+    } catch (_) {}
+  }
+
+  bool _parsePollVoteEvent(Message msg) {
+    if (msg.contentType != MessageType.custom) return false;
+    try {
+      final raw = json.decode(msg.customElem?.data ?? '{}') as Map<String, dynamic>;
+      if (raw['customType'] != CustomMessageType.pollVote) return false;
+      final d = raw['data'] as Map<String, dynamic>;
+      _applyVote(
+        d['pollMsgID'] as String,
+        d['optionIndex'] as int,
+        d['voterID'] as String,
+      );
       return true;
     } catch (_) {
       return false;

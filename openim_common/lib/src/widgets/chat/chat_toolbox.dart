@@ -10,12 +10,14 @@ class ChatToolBox extends StatelessWidget {
     this.onTapGif,
     this.onTapSticker,
     this.onTapFile,
+    this.onTapPoll,
   });
   final Function()? onTapAlbum;
   final Function()? onTapCall;
   final Function()? onTapGif;
   final Function()? onTapSticker;
   final Function()? onTapFile;
+  final Function()? onTapPoll;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +54,13 @@ class ChatToolBox extends StatelessWidget {
           onTap: onTapFile,
           isFile: true,
         ),
+      if (onTapPoll != null)
+        ToolboxItemInfo(
+          text: '投票',
+          icon: ImageRes.toolboxAlbum,
+          onTap: onTapPoll,
+          isPoll: true,
+        ),
     ];
 
     return Container(
@@ -81,6 +90,9 @@ class ChatToolBox extends StatelessWidget {
           }
           if (item.isFile) {
             return _buildTextItemView(text: '📁', label: item.text, onTap: item.onTap);
+          }
+          if (item.isPoll) {
+            return _buildTextItemView(text: '🗳️', label: item.text, onTap: item.onTap);
           }
           return _buildItemView(
             icon: item.icon,
@@ -141,6 +153,7 @@ class ToolboxItemInfo {
   bool isGif;
   bool isSticker;
   bool isFile;
+  bool isPoll;
 
   ToolboxItemInfo({
     required this.text,
@@ -149,5 +162,6 @@ class ToolboxItemInfo {
     this.isGif = false,
     this.isSticker = false,
     this.isFile = false,
+    this.isPoll = false,
   });
 }
