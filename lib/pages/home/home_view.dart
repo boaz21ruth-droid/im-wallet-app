@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
 import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
 
-import '../calls/calls_view.dart';
 import '../contacts/contacts_view.dart';
 import '../conversation/conversation_view.dart';
 import '../mine/favorites/favorites_view.dart';
@@ -20,29 +20,16 @@ class HomePage extends StatelessWidget {
           screen: ConversationPage(),
           item: ItemConfig(
             icon: _setupIcon(
-              const Icon(Icons.chat_bubble, size: 22),
+              const Icon(Icons.chat_bubble, size: 24),
               logic.unreadMsgCount.value,
             ),
             inactiveIcon: _setupIcon(
-              const Icon(Icons.chat_bubble_outline, size: 22),
+              const Icon(Icons.chat_bubble_outline, size: 24),
               logic.unreadMsgCount.value,
             ),
             title: StrRes.home,
-            activeForegroundColor: Colors.white,
+            activeForegroundColor: Styles.c_0089FF,
             inactiveForegroundColor: Styles.c_8E9AB0,
-            activeColorSecondary: Styles.c_0089FF,
-            textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-          ),
-        ),
-        PersistentTabConfig(
-          screen: CallsPage(),
-          item: ItemConfig(
-            icon: const Icon(Icons.call, size: 22),
-            inactiveIcon: const Icon(Icons.call_outlined, size: 22),
-            title: '通话',
-            activeForegroundColor: Colors.white,
-            inactiveForegroundColor: Styles.c_8E9AB0,
-            activeColorSecondary: Styles.c_0089FF,
             textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
           ),
         ),
@@ -50,41 +37,38 @@ class HomePage extends StatelessWidget {
           screen: ContactsPage(),
           item: ItemConfig(
             icon: _setupIcon(
-              const Icon(Icons.people, size: 22),
+              const Icon(Icons.people, size: 24),
               logic.unhandledCount.value,
             ),
             inactiveIcon: _setupIcon(
-              const Icon(Icons.people_outline, size: 22),
+              const Icon(Icons.people_outline, size: 24),
               logic.unhandledCount.value,
             ),
             title: StrRes.contacts,
-            activeForegroundColor: Colors.white,
+            activeForegroundColor: Styles.c_0089FF,
             inactiveForegroundColor: Styles.c_8E9AB0,
-            activeColorSecondary: Styles.c_0089FF,
             textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
           ),
         ),
         PersistentTabConfig(
           screen: FavoritesPage(asTab: true),
           item: ItemConfig(
-            icon: const Icon(Icons.bookmark, size: 22),
-            inactiveIcon: const Icon(Icons.bookmark_border, size: 22),
+            icon: const Icon(Icons.bookmark, size: 24),
+            inactiveIcon: const Icon(Icons.bookmark_border, size: 24),
             title: '收藏',
-            activeForegroundColor: Colors.white,
+            activeForegroundColor: Styles.c_0089FF,
             inactiveForegroundColor: Styles.c_8E9AB0,
-            activeColorSecondary: Styles.c_0089FF,
             textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
           ),
         ),
         PersistentTabConfig(
           screen: MinePage(),
           item: ItemConfig(
-            icon: const Icon(Icons.person, size: 22),
-            inactiveIcon: const Icon(Icons.person_outline, size: 22),
+            icon: const Icon(Icons.person, size: 24),
+            inactiveIcon: const Icon(Icons.person_outline, size: 24),
             title: StrRes.mine,
-            activeForegroundColor: Colors.white,
+            activeForegroundColor: Styles.c_0089FF,
             inactiveForegroundColor: Styles.c_8E9AB0,
-            activeColorSecondary: Styles.c_0089FF,
             textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
           ),
         ),
@@ -107,6 +91,73 @@ class HomePage extends StatelessWidget {
     );
   }
 
+  Widget _buildNavBar(NavBarConfig navBarConfig) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Styles.c_FFFFFF,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 4,
+            offset: const Offset(0, -1),
+          ),
+        ],
+      ),
+      height: navBarConfig.navBarHeight,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: navBarConfig.items.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          final isSelected = navBarConfig.selectedIndex == index;
+          return Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => navBarConfig.onItemSelected(index),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 5.h),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? Styles.c_0089FF.withOpacity(0.12)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: IconTheme(
+                      data: IconThemeData(
+                        size: item.iconSize,
+                        color: isSelected
+                            ? item.activeForegroundColor
+                            : item.inactiveForegroundColor,
+                      ),
+                      child: isSelected ? item.icon : item.inactiveIcon,
+                    ),
+                  ),
+                  4.verticalSpace,
+                  if (item.title != null)
+                    Text(
+                      item.title!,
+                      style: item.textStyle.copyWith(
+                        color: isSelected
+                            ? item.activeForegroundColor
+                            : item.inactiveForegroundColor,
+                        fontWeight: isSelected
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -114,19 +165,7 @@ class HomePage extends StatelessWidget {
       body: Obx(
         () => PersistentTabView(
           tabs: _tabs(),
-          navBarBuilder: (navBarConfig) => Style8BottomNavBar(
-            navBarConfig: navBarConfig,
-            navBarDecoration: NavBarDecoration(
-              color: Styles.c_FFFFFF,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 4,
-                  offset: const Offset(0, -1),
-                ),
-              ],
-            ),
-          ),
+          navBarBuilder: _buildNavBar,
           navBarOverlap: const NavBarOverlap.none(),
           screenTransitionAnimation: const ScreenTransitionAnimation.none(),
         ),

@@ -1,6 +1,5 @@
 import 'package:get/get.dart';
 
-import '../calls/calls_logic.dart';
 import '../contacts/contacts_logic.dart';
 import '../conversation/conversation_logic.dart';
 import '../mine/favorites/favorites_logic.dart';
@@ -12,7 +11,6 @@ class HomeBinding extends Bindings {
   void dependencies() {
     Get.lazyPut(() => HomeLogic());
     Get.lazyPut(() => ConversationLogic());
-    Get.lazyPut(() => CallsLogic());
     Get.lazyPut(() => ContactsLogic());
     Get.lazyPut(() => FavoritesLogic());
     Get.lazyPut(() => MineLogic());
