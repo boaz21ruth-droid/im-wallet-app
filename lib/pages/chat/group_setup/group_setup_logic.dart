@@ -309,6 +309,10 @@ class GroupSetupLogic extends GetxController {
         groupInfo: groupInfo.value,
       );
 
+  void openGroupFiles() => AppNavigator.startGroupFiles(
+        conversationID: conversationInfo.value.conversationID,
+      );
+
   void _removeConversation() async {
     await OpenIM.iMManager.conversationManager.deleteConversationAndDeleteAllMsg(
       conversationID: conversationInfo.value.conversationID,

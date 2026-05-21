@@ -36,6 +36,12 @@ class GroupSetupPage extends StatelessWidget {
                     showRightArrow: true,
                     onTap: logic.toEditAnnouncement,
                   ),
+                if (logic.isJoinedGroup.value)
+                  _buildItemView(
+                    text: '群文件',
+                    showRightArrow: true,
+                    onTap: logic.openGroupFiles,
+                  ),
                 if (logic.isOwner)
                   _buildItemView(
                     text: StrRes.groupManage,

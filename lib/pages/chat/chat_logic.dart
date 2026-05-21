@@ -14,6 +14,7 @@ import 'package:pull_to_refresh_new/pull_to_refresh.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:sprintf/sprintf.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:wechat_camera_picker/wechat_camera_picker.dart';
 import 'package:openim_live/openim_live.dart';
@@ -635,6 +636,49 @@ class ChatLogic extends SuperController {
       description: '[贴纸]',
     );
     _sendMessage(msg);
+  }
+
+  void sendGroupFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.any,
+      withData: false,
+    );
+    if (result == null || result.files.isEmpty) return;
+    final file = result.files.first;
+    if (file.path == null) return;
+
+    final uploadId = DateTime.now().millisecondsSinceEpoch.toString();
+    final completer = Completer<String>();
+    OpenIM.iMManager.setUploadFileListener(OnUploadFileListener(
+      onComplete: (id, size, url, type) {
+        if (id == uploadId) completer.complete(url);
+      },
+    ));
+
+    try {
+      await LoadingView.singleton.wrap(asyncFunction: () async {
+        await OpenIM.iMManager.uploadFile(
+          id: uploadId,
+          filePath: file.path!,
+          fileName: file.name,
+          contentType: file.extension != null ? 'application/${file.extension}' : 'application/octet-stream',
+          cause: 'groupFile',
+        );
+        final url = await completer.future.timeout(const Duration(seconds: 60));
+        final myNickname = OpenIM.iMManager.userInfo.nickname ?? '';
+        final msg = await OpenIM.iMManager.messageManager.createGroupFileMessage(
+          url: url,
+          name: file.name,
+          size: file.size,
+          mimeType: file.extension != null ? 'application/${file.extension}' : 'application/octet-stream',
+          uploaderID: OpenIM.iMManager.userID,
+          uploaderName: myNickname,
+        );
+        await _sendMessage(msg);
+      });
+    } catch (e) {
+      IMViews.showToast('文件上传失败: $e');
+    }
   }
 
   void onLongPressMessage(Message message) {

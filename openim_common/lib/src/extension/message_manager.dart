@@ -30,6 +30,30 @@ extension MessageManagerExt on MessageManager {
         extension: '',
         description: '',
       );
+
+  Future<Message> createGroupFileMessage({
+    required String url,
+    required String name,
+    required int size,
+    required String mimeType,
+    required String uploaderID,
+    required String uploaderName,
+  }) =>
+      createCustomMessage(
+        data: json.encode({
+          'customType': CustomMessageType.groupFile,
+          'data': {
+            'url': url,
+            'name': name,
+            'size': size,
+            'mimeType': mimeType,
+            'uploaderID': uploaderID,
+            'uploaderName': uploaderName,
+          },
+        }),
+        extension: '',
+        description: '[文件] $name',
+      );
 }
 
 extension MessageExt on Message {
@@ -118,6 +142,7 @@ class CustomMessageType {
   static const gif = 906;
   static const sticker = 907;
   static const editEvent = 908;
+  static const groupFile = 914;
 }
 
 extension PublicUserInfoExt on PublicUserInfo {

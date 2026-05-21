@@ -9,11 +9,13 @@ class ChatToolBox extends StatelessWidget {
     this.onTapCall,
     this.onTapGif,
     this.onTapSticker,
+    this.onTapFile,
   });
   final Function()? onTapAlbum;
   final Function()? onTapCall;
   final Function()? onTapGif;
   final Function()? onTapSticker;
+  final Function()? onTapFile;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +45,13 @@ class ChatToolBox extends StatelessWidget {
           onTap: onTapSticker,
           isSticker: true,
         ),
+      if (onTapFile != null)
+        ToolboxItemInfo(
+          text: '文件',
+          icon: ImageRes.toolboxAlbum,
+          onTap: onTapFile,
+          isFile: true,
+        ),
     ];
 
     return Container(
@@ -69,6 +78,9 @@ class ChatToolBox extends StatelessWidget {
           }
           if (item.isSticker) {
             return _buildTextItemView(text: '😊', label: item.text, onTap: item.onTap);
+          }
+          if (item.isFile) {
+            return _buildTextItemView(text: '📁', label: item.text, onTap: item.onTap);
           }
           return _buildItemView(
             icon: item.icon,
@@ -128,6 +140,7 @@ class ToolboxItemInfo {
   Function()? onTap;
   bool isGif;
   bool isSticker;
+  bool isFile;
 
   ToolboxItemInfo({
     required this.text,
@@ -135,5 +148,6 @@ class ToolboxItemInfo {
     this.onTap,
     this.isGif = false,
     this.isSticker = false,
+    this.isFile = false,
   });
 }

@@ -3,6 +3,7 @@ import 'package:flutter_openim_sdk/flutter_openim_sdk.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'chat_logic.dart';
 import 'gif_picker.dart';
@@ -181,9 +182,59 @@ class ChatPage extends StatelessWidget {
           false,
           true,
         );
+      } else if (viewType == CustomMessageType.groupFile) {
+        final fileData = data['data'] as Map<String, dynamic>? ?? {};
+        final name = fileData['name'] as String? ?? '未知文件';
+        final size = fileData['size'] as int? ?? 0;
+        final url = fileData['url'] as String? ?? '';
+        return CustomTypeInfo(
+          GestureDetector(
+            onTap: () async {
+              if (url.isNotEmpty) await launchUrl(Uri.parse(url));
+            },
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 10.h),
+              constraints: BoxConstraints(maxWidth: 220.w),
+              decoration: BoxDecoration(
+                color: Styles.c_FFFFFF,
+                borderRadius: BorderRadius.circular(8.r),
+                border: Border.all(color: Styles.c_E8EAEF),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('📁', style: TextStyle(fontSize: 28.sp)),
+                  10.horizontalSpace,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        name.toText
+                          ..style = Styles.ts_0C1C33_14sp
+                          ..maxLines = 2
+                          ..overflow = TextOverflow.ellipsis,
+                        4.verticalSpace,
+                        _formatFileSize(size).toText..style = Styles.ts_8E9AB0_12sp,
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          false,
+          true,
+        );
       }
     }
     return null;
+  }
+
+  String _formatFileSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    if (bytes < 1024 * 1024 * 1024) return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
   }
 
   Widget? get _groupCallHintView => null;
@@ -237,6 +288,7 @@ class ChatPage extends StatelessWidget {
                     onTapCall: logic.isGroupChat ? null : logic.call,
                     onTapGif: () => _showGifPicker(context),
                     onTapSticker: () => _showStickerPanel(context),
+                    onTapFile: logic.isGroupChat ? logic.sendGroupFile : null,
                   ),
                   voiceRecordBar: const SizedBox(),
                 )),

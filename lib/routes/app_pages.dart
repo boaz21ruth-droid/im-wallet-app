@@ -66,6 +66,8 @@ import '../pages/login/login_binding.dart';
 import '../pages/login/login_view.dart';
 import '../pages/mine/about_us/about_us_binding.dart';
 import '../pages/mine/about_us/about_us_view.dart';
+import '../pages/chat/group_files/group_files_binding.dart';
+import '../pages/chat/group_files/group_files_view.dart';
 import '../pages/mine/favorites/favorites_binding.dart';
 import '../pages/mine/favorites/favorites_view.dart';
 import '../pages/mine/account_setup/account_setup_binding.dart';
@@ -323,6 +325,11 @@ class AppPages {
       name: AppRoutes.favorites,
       page: () => FavoritesPage(),
       binding: FavoritesBinding(),
+    ),
+    _pageBuilder(
+      name: AppRoutes.groupFiles,
+      page: () => GroupFilesPage(),
+      binding: GroupFilesBinding(),
     ),
   ];
 }

@@ -49,6 +49,7 @@ abstract class AppRoutes {
   static const selectContactsFromTag = '/select_contacts_from_tag';
   static const editGroupAnnouncement = '/edit_group_announcement';
   static const favorites = '/favorites';
+  static const groupFiles = '/group_files';
 }
 
 extension RoutesExtension on String {

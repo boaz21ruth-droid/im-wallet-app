@@ -353,4 +353,7 @@ class AppNavigator {
       });
 
   static startSelectContactsFromTag() => Get.toNamed(AppRoutes.selectContactsFromTag);
+
+  static startGroupFiles({required String conversationID}) =>
+      Get.toNamed(AppRoutes.groupFiles, arguments: {'conversationID': conversationID});
 }
