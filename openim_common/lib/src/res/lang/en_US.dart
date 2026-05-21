@@ -612,6 +612,14 @@ const Map<String, String> en_US = {
   'otherNetworkNotStableHint': 'The other party\'s network is unstable',
   'callingInterruption': 'Calling interruption',
   'directedTo': 'Directed to',
+  'menuEdit': 'Edit',
+  'menuCollect': 'Save',
+  'editedMark': 'Edited',
+  'myFavorites': 'My Favorites',
+  'collectedSuccessfully': 'Saved',
+  'groupAnnouncement': 'Group Announcement',
+  'editGroupAnnouncement': 'Edit Announcement',
+  'noAnnouncement': 'No announcement',
   ...errorMessages,
 };
 

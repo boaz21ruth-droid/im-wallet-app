@@ -4,6 +4,8 @@ import '../pages/chat/chat_binding.dart';
 import '../pages/chat/chat_setup/chat_setup_binding.dart';
 import '../pages/chat/chat_setup/chat_setup_view.dart';
 import '../pages/chat/chat_view.dart';
+import '../pages/chat/group_setup/edit_announcement/edit_announcement_binding.dart';
+import '../pages/chat/group_setup/edit_announcement/edit_announcement_view.dart';
 import '../pages/chat/group_setup/edit_name/edit_name_binding.dart';
 import '../pages/chat/group_setup/edit_name/edit_name_view.dart';
 import '../pages/chat/group_setup/group_manage/group_manage_binding.dart';
@@ -64,6 +66,8 @@ import '../pages/login/login_binding.dart';
 import '../pages/login/login_view.dart';
 import '../pages/mine/about_us/about_us_binding.dart';
 import '../pages/mine/about_us/about_us_view.dart';
+import '../pages/mine/favorites/favorites_binding.dart';
+import '../pages/mine/favorites/favorites_view.dart';
 import '../pages/mine/account_setup/account_setup_binding.dart';
 import '../pages/mine/account_setup/account_setup_view.dart';
 import '../pages/mine/blacklist/blacklist_binding.dart';
@@ -309,6 +313,16 @@ class AppPages {
       name: AppRoutes.resetPassword,
       page: () => ResetPasswordPage(),
       binding: ResetPasswordBinding(),
+    ),
+    _pageBuilder(
+      name: AppRoutes.editGroupAnnouncement,
+      page: () => EditAnnouncementPage(),
+      binding: EditAnnouncementBinding(),
+    ),
+    _pageBuilder(
+      name: AppRoutes.favorites,
+      page: () => FavoritesPage(),
+      binding: FavoritesBinding(),
     ),
   ];
 }

@@ -21,6 +21,8 @@ class ChatInputBox extends StatefulWidget {
     this.forceCloseToolboxSub,
     this.quoteContent,
     this.onClearQuote,
+    this.editContent,
+    this.onClearEdit,
     this.onSend,
     this.directionalText,
     this.onCloseDirectional,
@@ -37,6 +39,8 @@ class ChatInputBox extends StatefulWidget {
   final Stream? forceCloseToolboxSub;
   final String? quoteContent;
   final Function()? onClearQuote;
+  final String? editContent;
+  final Function()? onClearEdit;
   final ValueChanged<String>? onSend;
   final TextSpan? directionalText;
   final VoidCallback? onCloseDirectional;
@@ -51,6 +55,7 @@ class _ChatInputBoxState extends State<ChatInputBox> /*with TickerProviderStateM
   bool _sendButtonVisible = false;
 
   bool get _showQuoteView => IMUtils.isNotNullEmptyStr(widget.quoteContent);
+  bool get _showEditView => IMUtils.isNotNullEmptyStr(widget.editContent);
 
   double get _opacity => (widget.enabled ? 1 : .4);
 
@@ -154,6 +159,7 @@ class _ChatInputBoxState extends State<ChatInputBox> /*with TickerProviderStateM
           mainAxisSize: MainAxisSize.min,
           children: [
             if (_showQuoteView) _QuotePreview(content: widget.quoteContent!, onClear: widget.onClearQuote),
+            if (_showEditView) _EditPreview(content: widget.editContent!, onClear: widget.onClearEdit),
             ChatTextField(
               controller: widget.controller,
               focusNode: widget.focusNode,
@@ -232,6 +238,50 @@ class _QuotePreview extends StatelessWidget {
               style: Styles.ts_8E9AB0_14sp,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          GestureDetector(
+            onTap: onClear,
+            child: Icon(Icons.close, size: 18.r, color: Styles.c_8E9AB0),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EditPreview extends StatelessWidget {
+  const _EditPreview({required this.content, this.onClear});
+  final String content;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(left: 8.w, right: 4.w, top: 6.h, bottom: 4.h),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Styles.c_E8EAEF, width: 0.5.h)),
+      ),
+      child: Row(
+        children: [
+          Container(width: 3.w, height: 32.h, color: const Color(0xFFFF7D00)),
+          8.horizontalSpace,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  StrRes.menuEdit,
+                  style: Styles.ts_0089FF_12sp,
+                ),
+                Text(
+                  content,
+                  style: Styles.ts_8E9AB0_14sp,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
           GestureDetector(

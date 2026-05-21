@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_openim_sdk/flutter_openim_sdk.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
 
@@ -203,7 +204,16 @@ class ChatPage extends StatelessWidget {
               onClickSearchBtn: logic.toggleSearchMode,
             ),
             body: SafeArea(
-              child: WaterMarkBgView(
+              child: Column(
+                children: [
+                  Obx(() => logic.showAnnouncementBanner.value
+                      ? _AnnouncementBanner(
+                          text: logic.announcement.value,
+                          onDismiss: logic.dismissBanner,
+                        )
+                      : const SizedBox()),
+                  Expanded(
+                    child: WaterMarkBgView(
                 text: '',
                 path: logic.background.value,
                 backgroundColor: Styles.c_FFFFFF,
@@ -219,6 +229,8 @@ class ChatPage extends StatelessWidget {
                   onCloseDirectional: logic.onClearDirectional,
                   quoteContent: logic.quoteSummary,
                   onClearQuote: logic.clearQuote,
+                  editContent: logic.editSummary,
+                  onClearEdit: logic.cancelEdit,
                   onSend: (v) => logic.sendTextMsg(),
                   toolbox: ChatToolBox(
                     onTapAlbum: logic.onTapAlbum,
@@ -241,6 +253,9 @@ class ChatPage extends StatelessWidget {
                     return Obx(() => _buildItemView(message));
                   },
                 ),
+              ),
+                  ),
+                ],
               ),
             ));
       }),
@@ -331,6 +346,39 @@ class ChatPage extends StatelessWidget {
     Get.bottomSheet(
       ChatStickerPanel(onSend: logic.sendSticker),
       isScrollControlled: true,
+    );
+  }
+}
+
+class _AnnouncementBanner extends StatelessWidget {
+  const _AnnouncementBanner({required this.text, required this.onDismiss});
+  final String text;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: const Color(0xFFFFFBE6),
+      padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+      child: Row(
+        children: [
+          const Icon(Icons.campaign_outlined, size: 18, color: Color(0xFFD48806)),
+          8.horizontalSpace,
+          Expanded(
+            child: Text(
+              text.length > 50 ? '${text.substring(0, 50)}...' : text,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF614700)),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          GestureDetector(
+            onTap: onDismiss,
+            child: const Icon(Icons.close, size: 18, color: Color(0xFF8E9AB0)),
+          ),
+        ],
+      ),
     );
   }
 }

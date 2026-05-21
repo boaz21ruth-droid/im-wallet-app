@@ -166,14 +166,33 @@ class _ChatItemViewState extends State<ChatItemView> {
     } else if (_message.isEmojiType) {
     } else if (_message.isTagType) {
     }*/
-    if (_message.isTextType) {
+    if (_message.ex == 'revoked') {
       isBubbleBg = true;
-      child = ChatText(
+      child = Padding(
+        padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+        child: Text(
+          StrRes.revokeMsg,
+          style: Styles.ts_8E9AB0_14sp.copyWith(fontStyle: FontStyle.italic),
+        ),
+      );
+    } else if (_message.isTextType) {
+      isBubbleBg = true;
+      final textWidget = ChatText(
         text: _message.textElem!.content!,
         patterns: widget.patterns,
         textScaleFactor: widget.textScaleFactor,
         onVisibleTrulyText: widget.onVisibleTrulyText,
       );
+      child = _message.ex == 'edited'
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                textWidget,
+                Text(StrRes.editedMark, style: Styles.ts_8E9AB0_12sp),
+              ],
+            )
+          : textWidget;
     } else if (_message.isQuoteType) {
       isBubbleBg = true;
       final quoteElem = _message.quoteElem!;
@@ -213,6 +232,11 @@ class _ChatItemViewState extends State<ChatItemView> {
             textScaleFactor: widget.textScaleFactor,
             onVisibleTrulyText: widget.onVisibleTrulyText,
           ),
+          if (_message.ex == 'edited')
+            Align(
+              alignment: Alignment.centerRight,
+              child: Text(StrRes.editedMark, style: Styles.ts_8E9AB0_12sp),
+            ),
         ],
       );
     } else if (_message.isPictureType) {

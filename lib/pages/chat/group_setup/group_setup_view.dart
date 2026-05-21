@@ -22,6 +22,20 @@ class GroupSetupPage extends StatelessWidget {
               children: [
                 if (logic.isJoinedGroup.value) _buildBaseInfoView(),
                 if (logic.isJoinedGroup.value) _buildMemberView(),
+                if (logic.isJoinedGroup.value)
+                  _buildItemView(
+                    text: StrRes.groupAnnouncement,
+                    value: logic.groupInfo.value.notification?.isNotEmpty == true
+                        ? logic.groupInfo.value.notification!.substring(
+                            0,
+                            logic.groupInfo.value.notification!.length > 20
+                                ? 20
+                                : logic.groupInfo.value.notification!.length,
+                          )
+                        : StrRes.noAnnouncement,
+                    showRightArrow: true,
+                    onTap: logic.toEditAnnouncement,
+                  ),
                 if (logic.isOwner)
                   _buildItemView(
                     text: StrRes.groupManage,

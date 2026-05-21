@@ -10,6 +10,9 @@ class MessageActionSheet extends StatelessWidget {
     this.onCopy,
     this.onDelete,
     this.onReact,
+    this.onRevoke,
+    this.onEdit,
+    this.onCollect,
   }) : super(key: key);
 
   final VoidCallback? onReply;
@@ -17,6 +20,9 @@ class MessageActionSheet extends StatelessWidget {
   final VoidCallback? onCopy;
   final VoidCallback? onDelete;
   final ValueChanged<String>? onReact;
+  final VoidCallback? onRevoke;
+  final VoidCallback? onEdit;
+  final VoidCallback? onCollect;
 
   static const _quickEmojis = ['❤️', '😂', '😮', '😢', '😡', '👍'];
 
@@ -56,8 +62,11 @@ class MessageActionSheet extends StatelessWidget {
               ),
             if (onReact != null) Divider(height: 0.5.h, color: Styles.c_E8EAEF),
             if (onReply != null) _ActionTile(icon: Icons.reply, label: StrRes.menuReply, onTap: onReply!),
+            if (onEdit != null) _ActionTile(icon: Icons.edit_outlined, label: StrRes.menuEdit, onTap: onEdit!),
             if (onForward != null) _ActionTile(icon: Icons.forward, label: StrRes.menuForward, onTap: onForward!),
             if (onCopy != null) _ActionTile(icon: Icons.copy, label: StrRes.menuCopy, onTap: onCopy!),
+            if (onCollect != null) _ActionTile(icon: Icons.bookmark_border, label: StrRes.menuCollect, onTap: onCollect!),
+            if (onRevoke != null) _ActionTile(icon: Icons.undo, label: StrRes.menuRevoke, onTap: onRevoke!),
             if (onDelete != null)
               _ActionTile(icon: Icons.delete_outline, label: StrRes.delete, onTap: onDelete!, isDestructive: true),
             SizedBox(height: 8.h),

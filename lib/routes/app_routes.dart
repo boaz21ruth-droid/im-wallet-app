@@ -47,6 +47,8 @@ abstract class AppRoutes {
   static const forgetPassword = '/forget_password';
   static const resetPassword = '/reset_password';
   static const selectContactsFromTag = '/select_contacts_from_tag';
+  static const editGroupAnnouncement = '/edit_group_announcement';
+  static const favorites = '/favorites';
 }
 
 extension RoutesExtension on String {

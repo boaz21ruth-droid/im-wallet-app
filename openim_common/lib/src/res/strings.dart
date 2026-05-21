@@ -1172,4 +1172,13 @@ class StrRes {
   static String get otherNetworkNotStableHint => 'otherNetworkNotStableHint'.tr;
   static String get callingInterruption => 'callingInterruption'.tr;
   static String get directedTo => 'directedTo'.tr;
+
+  static String get menuEdit => 'menuEdit'.tr;
+  static String get menuCollect => 'menuCollect'.tr;
+  static String get editedMark => 'editedMark'.tr;
+  static String get myFavorites => 'myFavorites'.tr;
+  static String get collectedSuccessfully => 'collectedSuccessfully'.tr;
+  static String get groupAnnouncement => 'groupAnnouncement'.tr;
+  static String get editGroupAnnouncement => 'editGroupAnnouncement'.tr;
+  static String get noAnnouncement => 'noAnnouncement'.tr;
 }

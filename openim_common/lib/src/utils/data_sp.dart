@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_openim_sdk/flutter_openim_sdk.dart';
 import 'package:openim_common/openim_common.dart';
 import 'package:sprintf/sprintf.dart';
@@ -181,5 +183,52 @@ class DataSp {
 
   static Future<bool>? removeMeetingInProgress() {
     return SpUtil().remove(getKey(_meetingInProgress));
+  }
+
+  // --- 收藏消息 ---
+  static const _favorites = '%s_favoriteMessages';
+
+  static Future<bool>? addFavoriteMessage(Map<String, dynamic> snapshot) {
+    final list = _getRawFavorites();
+    list.add(json.encode(snapshot));
+    return SpUtil().putStringList(getKey(_favorites), list);
+  }
+
+  static List<Map<String, dynamic>> getFavoriteMessages() {
+    return _getRawFavorites().map((s) {
+      try {
+        return json.decode(s) as Map<String, dynamic>;
+      } catch (_) {
+        return <String, dynamic>{};
+      }
+    }).where((m) => m.isNotEmpty).toList();
+  }
+
+  static Future<bool>? removeFavoriteMessage(String clientMsgID) {
+    final list = _getRawFavorites();
+    list.removeWhere((s) {
+      try {
+        final m = json.decode(s) as Map<String, dynamic>;
+        return m['clientMsgID'] == clientMsgID;
+      } catch (_) {
+        return false;
+      }
+    });
+    return SpUtil().putStringList(getKey(_favorites), list);
+  }
+
+  static List<String> _getRawFavorites() {
+    return List<String>.from(SpUtil().getStringList(getKey(_favorites), defValue: []) ?? []);
+  }
+
+  // --- 群公告已读 ---
+  static const _announcementDismissed = '%s_announcementDismissed_%s';
+
+  static Future<bool>? putAnnouncementDismissed(String groupID) {
+    return SpUtil().putBool(getKey(_announcementDismissed, key2: groupID), true);
+  }
+
+  static bool isAnnouncementDismissed(String groupID) {
+    return SpUtil().getBool(getKey(_announcementDismissed, key2: groupID), defValue: false) ?? false;
   }
 }

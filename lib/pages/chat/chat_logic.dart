@@ -87,6 +87,8 @@ class ChatLogic extends SuperController {
 
   final copyTextMap = <String?, String?>{};
   final quoteMsg = Rxn<Message>();
+  final editingMsg = Rxn<Message>();
+  final showAnnouncementBanner = false.obs;
 
   // --- 对话内搜索 ---
   final searchMode = false.obs;
@@ -183,6 +185,10 @@ class ChatLogic extends SuperController {
         if (message.contentType == MessageType.typing) {
         } else if (_parseReaction(message)) {
           // reaction 消息只更新 reactions map，不加入消息列表
+        } else if (_parseEditEvent(message)) {
+          // edit 事件只更新目标消息内容，不加入消息列表
+        } else if (message.isRevokeType) {
+          _handleRevokeNotification(message);
         } else {
           if (!messageList.contains(message) && !scrollingCacheMessageList.contains(message)) {
             _isReceivedMessageWhenSyncing = true;
@@ -288,6 +294,7 @@ class ChatLogic extends SuperController {
         nickname.value = value.groupName ?? '';
         faceUrl.value = value.faceURL ?? '';
         memberCount.value = value.memberCount ?? 0;
+        _checkAnnouncement();
       }
     });
 
@@ -382,6 +389,140 @@ class ChatLogic extends SuperController {
   }
 
   void clearQuote() => quoteMsg.value = null;
+
+  // --- 消息编辑 ---
+  String? get editSummary {
+    final msg = editingMsg.value;
+    if (msg == null) return null;
+    if (msg.isQuoteType) return msg.quoteElem?.text ?? '';
+    return msg.textElem?.content ?? '';
+  }
+
+  void startEdit(Message message) {
+    editingMsg.value = message;
+    inputCtrl.text = message.isQuoteType
+        ? (message.quoteElem?.text ?? '')
+        : (message.textElem?.content ?? '');
+    focusNode.requestFocus();
+  }
+
+  void cancelEdit() {
+    editingMsg.value = null;
+    inputCtrl.clear();
+  }
+
+  Future<void> _sendEditEvent(String newText) async {
+    final target = editingMsg.value!;
+    final payload = json.encode({
+      'customType': CustomMessageType.editEvent,
+      'data': {'targetMsgID': target.clientMsgID, 'newText': newText},
+    });
+    final msg = await OpenIM.iMManager.messageManager.createCustomMessage(
+      data: payload,
+      extension: '',
+      description: '',
+    );
+    _applyEdit(target.clientMsgID!, newText);
+    cancelEdit();
+    await _sendMessage(msg);
+  }
+
+  void _applyEdit(String targetMsgID, String newText) {
+    final idx = messageList.indexWhere((m) => m.clientMsgID == targetMsgID);
+    if (idx < 0) return;
+    messageList[idx].textElem?.content = newText;
+    messageList[idx].ex = 'edited';
+    messageList.refresh();
+  }
+
+  bool _parseEditEvent(Message msg) {
+    if (msg.contentType != MessageType.custom) return false;
+    try {
+      final raw = json.decode(msg.customElem?.data ?? '{}');
+      if (raw['customType'] != CustomMessageType.editEvent) return false;
+      final data = raw['data'] as Map<String, dynamic>;
+      _applyEdit(data['targetMsgID'] as String, data['newText'] as String);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // --- 消息撤回 ---
+  void _revokeMessage(Message message) async {
+    try {
+      await OpenIM.iMManager.messageManager.revokeMessage(
+        conversationID: conversationInfo.conversationID,
+        clientMsgID: message.clientMsgID!,
+      );
+      message.ex = 'revoked';
+      messageList.refresh();
+    } catch (e) {
+      IMViews.showToast(e.toString());
+    }
+  }
+
+  void _handleRevokeNotification(Message notification) {
+    try {
+      final detail = json.decode(notification.notificationElem?.detail ?? '{}');
+      final msgID = detail['clientMsgID'] as String?;
+      if (msgID != null) {
+        final idx = messageList.indexWhere((m) => m.clientMsgID == msgID);
+        if (idx >= 0) {
+          messageList[idx].ex = 'revoked';
+          messageList.refresh();
+        }
+      }
+    } catch (_) {}
+  }
+
+  // --- 收藏消息 ---
+  void _collectMessage(Message message) {
+    String preview;
+    if (message.isTextType) {
+      preview = message.textElem?.content ?? '';
+    } else if (message.isQuoteType) {
+      preview = message.quoteElem?.text ?? '';
+    } else if (message.isPictureType) {
+      preview = '[${StrRes.picture}]';
+    } else if (message.isVideoType) {
+      preview = '[${StrRes.video}]';
+    } else if (message.isVoiceType) {
+      preview = '[${StrRes.voice}]';
+    } else if (message.isFileType) {
+      preview = '[${StrRes.file}]';
+    } else {
+      preview = '[${StrRes.unsupportedMessage}]';
+    }
+    DataSp.addFavoriteMessage({
+      'clientMsgID': message.clientMsgID,
+      'contentType': message.contentType,
+      'preview': preview,
+      'senderNickname': message.senderNickname,
+      'senderFaceUrl': message.senderFaceUrl,
+      'sendTime': message.sendTime,
+      'savedAt': DateTime.now().millisecondsSinceEpoch,
+    });
+    IMViews.showToast(StrRes.collectedSuccessfully);
+  }
+
+  // --- 群公告 ---
+  void _checkAnnouncement() {
+    if (!isGroupChat) return;
+    final ann = groupInfo?.notification ?? '';
+    announcement.value = ann;
+    if (ann.isEmpty) {
+      showAnnouncementBanner.value = false;
+      return;
+    }
+    final dismissed = DataSp.isAnnouncementDismissed(groupID!);
+    showAnnouncementBanner.value = !dismissed;
+  }
+
+  void dismissBanner() {
+    DataSp.putAnnouncementDismissed(groupID!);
+    showAnnouncementBanner.value = false;
+  }
 
   // --- 对话内搜索 ---
   void toggleSearchMode() {
@@ -498,6 +639,11 @@ class ChatLogic extends SuperController {
 
   void onLongPressMessage(Message message) {
     if (message.isNotificationType) return;
+    if (message.ex == 'revoked') return;
+    final isOwnMessage = message.sendID == OpenIM.iMManager.userID;
+    final canRevoke = isOwnMessage &&
+        (DateTime.now().millisecondsSinceEpoch - (message.sendTime ?? 0)) < 2 * 60 * 1000;
+    final canEdit = isOwnMessage && (message.isTextType || message.isQuoteType);
     Get.bottomSheet(
       MessageActionSheet(
         onReply: isInvalidGroup ? null : () => setQuote(message),
@@ -505,6 +651,9 @@ class ChatLogic extends SuperController {
         onCopy: message.isTextType || message.isQuoteType ? () => _copyMessageText(message) : null,
         onDelete: () => _deleteMessage(message),
         onReact: (emoji) => sendReaction(message, emoji),
+        onRevoke: canRevoke ? () => _revokeMessage(message) : null,
+        onEdit: canEdit ? () => startEdit(message) : null,
+        onCollect: () => _collectMessage(message),
       ),
       backgroundColor: Styles.c_FFFFFF,
     );
@@ -541,6 +690,10 @@ class ChatLogic extends SuperController {
   void sendTextMsg() async {
     var content = IMUtils.safeTrim(inputCtrl.text);
     if (content.isEmpty) return;
+    if (editingMsg.value != null) {
+      await _sendEditEvent(content);
+      return;
+    }
     Message message;
     if (quoteMsg.value != null) {
       message = await OpenIM.iMManager.messageManager.createQuoteMessage(
@@ -1072,6 +1225,7 @@ class ChatLogic extends SuperController {
       memberCount.value = groupInfo!.memberCount!;
     }
     _queryMyGroupMemberInfo();
+    _checkAnnouncement();
   }
 
   bool get havePermissionMute =>

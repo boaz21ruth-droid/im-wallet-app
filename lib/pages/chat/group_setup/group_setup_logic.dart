@@ -12,6 +12,7 @@ import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import '../../../core/controller/app_controller.dart';
 import '../../../core/controller/im_controller.dart';
 import '../../../routes/app_navigator.dart';
+import '../../../routes/app_pages.dart';
 import '../../contacts/select_contacts/select_contacts_logic.dart';
 import '../../conversation/conversation_logic.dart';
 import '../chat_logic.dart';
@@ -264,6 +265,25 @@ class GroupSetupLogic extends GetxController {
         type: EditNameType.groupNickname,
         faceUrl: faceUrl,
       );
+
+  void toEditAnnouncement() {
+    if (isOwnerOrAdmin) {
+      Get.toNamed(AppRoutes.editGroupAnnouncement);
+    } else {
+      final ann = groupInfo.value.notification ?? '';
+      if (ann.isNotEmpty) {
+        Get.dialog(
+          AlertDialog(
+            title: Text(StrRes.groupAnnouncement),
+            content: Text(ann),
+            actions: [
+              TextButton(onPressed: Get.back, child: Text(StrRes.confirm)),
+            ],
+          ),
+        );
+      }
+    }
+  }
 
   _modifyGroupInfo({
     String? groupName,

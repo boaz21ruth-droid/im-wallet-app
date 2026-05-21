@@ -8,6 +8,7 @@ import 'package:openim_common/openim_common.dart';
 
 import '../../core/controller/im_controller.dart';
 import '../../routes/app_navigator.dart';
+import '../../routes/app_pages.dart';
 
 class MineLogic extends GetxController {
   final imLogic = Get.find<IMController>();
@@ -15,6 +16,8 @@ class MineLogic extends GetxController {
   late StreamSubscription kickedOfflineSub;
 
   void viewMyInfo() => AppNavigator.startMyInfo();
+
+  void viewFavorites() => Get.toNamed(AppRoutes.favorites);
 
   void copyID() {
     IMUtils.copy(text: imLogic.userInfo.value.userID!);

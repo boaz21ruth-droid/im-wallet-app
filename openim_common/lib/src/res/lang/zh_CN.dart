@@ -609,6 +609,14 @@ const Map<String, String> zh_CN = {
   'otherNetworkNotStableHint': '对方网络不稳定',
   'callingInterruption': '通话中断',
   'directedTo': '定向发送给',
+  'menuEdit': '编辑',
+  'menuCollect': '收藏',
+  'editedMark': '已编辑',
+  'myFavorites': '我的收藏',
+  'collectedSuccessfully': '已收藏',
+  'groupAnnouncement': '群公告',
+  'editGroupAnnouncement': '编辑群公告',
+  'noAnnouncement': '暂无群公告',
   ...errorMessages,
 };
 

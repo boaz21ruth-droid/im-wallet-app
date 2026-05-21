@@ -117,6 +117,7 @@ class CustomMessageType {
 
   static const gif = 906;
   static const sticker = 907;
+  static const editEvent = 908;
 }
 
 extension PublicUserInfoExt on PublicUserInfo {
