@@ -18,6 +18,8 @@ enum GroupMemberOpType {
   call,
   at,
   del,
+  setAdmin,
+  mute,
 }
 
 class GroupMemberListLogic extends GetxController {
@@ -37,7 +39,11 @@ class GroupMemberListLogic extends GetxController {
       opType == GroupMemberOpType.call || opType == GroupMemberOpType.at || opType == GroupMemberOpType.del;
 
   bool get excludeSelfFromList =>
-      opType == GroupMemberOpType.call || opType == GroupMemberOpType.at || opType == GroupMemberOpType.transferRight;
+      opType == GroupMemberOpType.call ||
+      opType == GroupMemberOpType.at ||
+      opType == GroupMemberOpType.transferRight ||
+      opType == GroupMemberOpType.setAdmin ||
+      opType == GroupMemberOpType.mute;
 
   bool get isDelMember => opType == GroupMemberOpType.del;
 
@@ -101,15 +107,21 @@ class GroupMemberListLogic extends GetxController {
   }
 
   Future<List<GroupMembersInfo>> _getGroupMembers() {
+    int filter = 0;
+    if (isDelMember) {
+      filter = isOwner ? 4 : (isAdmin ? 3 : 0);
+    } else if (opType == GroupMemberOpType.setAdmin) {
+      filter = 3;
+    } else if (opType == GroupMemberOpType.mute) {
+      filter = isOwner ? 4 : 3;
+    }
     final result = OpenIM.iMManager.groupManager.getGroupMemberList(
       groupID: groupInfo.groupID,
       count: count,
       offset: memberList.length,
-      filter: isDelMember ? (isOwner ? 4 : (isAdmin ? 3 : 0)) : 0,
+      filter: filter,
     );
-
     count = 100;
-
     return result;
   }
 
@@ -129,6 +141,10 @@ class GroupMemberListLogic extends GetxController {
   clickMember(GroupMembersInfo membersInfo) async {
     if (opType == GroupMemberOpType.transferRight) {
       _transferGroupRight(membersInfo);
+      return;
+    }
+    if (opType == GroupMemberOpType.setAdmin || opType == GroupMemberOpType.mute) {
+      Get.back(result: membersInfo);
       return;
     }
     if (isMultiSelMode) {
