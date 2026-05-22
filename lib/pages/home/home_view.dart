@@ -6,7 +6,7 @@ import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
 
 import '../contacts/contacts_view.dart';
 import '../conversation/conversation_view.dart';
-import '../mine/favorites/favorites_view.dart';
+import '../wallet/wallet_view.dart';
 import '../mine/mine_view.dart';
 import 'home_logic.dart';
 
@@ -51,11 +51,11 @@ class HomePage extends StatelessWidget {
           ),
         ),
         PersistentTabConfig(
-          screen: FavoritesPage(asTab: true),
+          screen: const WalletPage(asTab: true),
           item: ItemConfig(
-            icon: const Icon(Icons.bookmark, size: 24),
-            inactiveIcon: const Icon(Icons.bookmark_border, size: 24),
-            title: '收藏',
+            icon: const Icon(Icons.account_balance_wallet, size: 24),
+            inactiveIcon: const Icon(Icons.account_balance_wallet_outlined, size: 24),
+            title: StrRes.wallet,
             activeForegroundColor: Styles.c_0089FF,
             inactiveForegroundColor: Styles.c_8E9AB0,
             textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),

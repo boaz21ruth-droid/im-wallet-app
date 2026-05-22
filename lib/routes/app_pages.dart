@@ -70,6 +70,8 @@ import '../pages/chat/group_files/group_files_binding.dart';
 import '../pages/chat/group_files/group_files_view.dart';
 import '../pages/mine/favorites/favorites_binding.dart';
 import '../pages/mine/favorites/favorites_view.dart';
+import '../pages/wallet/wallet_binding.dart';
+import '../pages/wallet/wallet_view.dart';
 import '../pages/mine/account_setup/account_setup_binding.dart';
 import '../pages/mine/account_setup/account_setup_view.dart';
 import '../pages/mine/blacklist/blacklist_binding.dart';
@@ -330,6 +332,11 @@ class AppPages {
       name: AppRoutes.groupFiles,
       page: () => GroupFilesPage(),
       binding: GroupFilesBinding(),
+    ),
+    _pageBuilder(
+      name: AppRoutes.wallet,
+      page: () => const WalletPage(),
+      binding: WalletBinding(),
     ),
   ];
 }

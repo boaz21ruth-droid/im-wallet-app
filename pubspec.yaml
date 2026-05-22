@@ -102,6 +102,14 @@ dependencies:
   persistent_bottom_nav_bar_v2: ^5.3.1
   flutter_openim_sdk: ^3.8.3+hotfix.12
 
+  # Web3 wallet
+  web3dart: ^2.7.3
+  bip39: ^1.0.6
+  bip32: ^2.0.0
+  flutter_secure_storage: ^9.2.2
+  mobile_scanner: ^5.1.0
+  pointycastle: ^4.0.0
+
   openim_common:
     path: openim_common
   openim_live:
@@ -123,6 +131,7 @@ dependency_overrides:
   font_awesome_flutter: any
   extended_text_field: any
   volume_controller: ">=3.0.0 <3.4.0"
+  pointycastle: ^4.0.0
 
 # The following section is specific to Flutter packages.
 flutter:

@@ -50,6 +50,7 @@ abstract class AppRoutes {
   static const editGroupAnnouncement = '/edit_group_announcement';
   static const favorites = '/favorites';
   static const groupFiles = '/group_files';
+  static const wallet = '/wallet';
 }
 
 extension RoutesExtension on String {

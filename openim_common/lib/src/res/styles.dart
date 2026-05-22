@@ -4,27 +4,27 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 class Styles {
   Styles._();
 
-  static Color c_0089FF = const Color(0xFF4F6FFF);
-  static Color c_0C1C33 = const Color(0xFF0C1C33);
-  static Color c_8E9AB0 = const Color(0xFF8E9AB0);
-  static Color c_E8EAEF = const Color(0xFFE8EAEF);
+  static Color c_0089FF = const Color(0xFF005BB3);
+  static Color c_0C1C33 = const Color(0xFF1A1C1F);
+  static Color c_8E9AB0 = const Color(0xFF717786);
+  static Color c_E8EAEF = const Color(0xFFC0C6D6);
   static Color c_FF381F = const Color(0xFFFF381F);
   static Color c_FFFFFF = const Color(0xFFFFFFFF);
-  static Color c_18E875 = const Color(0xFF18E875);
-  static Color c_F0F2F6 = const Color(0xFFF0F2F6);
+  static Color c_18E875 = const Color(0xFF4EDEA3);
+  static Color c_F0F2F6 = const Color(0xFFEDEDF1);
   static Color c_000000 = const Color(0xFF000000);
   static Color c_92B3E0 = const Color(0xFF92B3E0);
   static Color c_F2F8FF = const Color(0xFFF2F8FF);
-  static Color c_F8F9FA = const Color(0xFFF5F6FA);
+  static Color c_F8F9FA = const Color(0xFFF9F9FD);
   static Color c_6085B1 = const Color(0xFF6085B1);
   static Color c_FFB300 = const Color(0xFFFFB300);
   static Color c_FFE1DD = const Color(0xFFFFE1DD);
-  static Color c_707070 = const Color(0xFF707070);
+  static Color c_707070 = const Color(0xFF717786);
 
   static Color c_92B3E0_opacity50 = c_92B3E0.withOpacity(.5);
   static Color c_E8EAEF_opacity50 = c_E8EAEF.withOpacity(.5);
-  static Color c_F4F5F7 = const Color(0xFFF4F5F7);
-  static Color c_CCE7FE = const Color(0xFFCCE7FE);
+  static Color c_F4F5F7 = const Color(0xFFF3F3F7);
+  static Color c_CCE7FE = const Color(0xFFD6E3FF);
 
   static Color c_FFFFFF_opacity0 = c_FFFFFF.withOpacity(.0);
   static Color c_FFFFFF_opacity70 = c_FFFFFF.withOpacity(.7);
@@ -49,40 +49,42 @@ class Styles {
   static Color c_000000_opacity4 = c_000000.withOpacity(.04);
 
   static void applyLightTheme() {
-    c_0089FF = const Color(0xFF4F6FFF);
-    c_0C1C33 = const Color(0xFF0C1C33);
-    c_8E9AB0 = const Color(0xFF8E9AB0);
-    c_E8EAEF = const Color(0xFFE8EAEF);
-    c_FFFFFF = const Color(0xFFFFFFFF);
-    c_F0F2F6 = const Color(0xFFF0F2F6);
-    c_F8F9FA = const Color(0xFFF5F6FA);
+    c_0089FF = const Color(0xFF005BB3); // primary accent (deep blue)
+    c_0C1C33 = const Color(0xFF1A1C1F); // on-surface (main text)
+    c_8E9AB0 = const Color(0xFF717786); // on-surface-variant (secondary text)
+    c_E8EAEF = const Color(0xFFC0C6D6); // outline-variant (dividers)
+    c_FFFFFF = const Color(0xFFFFFFFF); // surface (cards)
+    c_F0F2F6 = const Color(0xFFEDEDF1); // surface-container
+    c_F8F9FA = const Color(0xFFF9F9FD); // background
     c_92B3E0 = const Color(0xFF92B3E0);
     c_F2F8FF = const Color(0xFFF2F8FF);
-    c_CCE7FE = const Color(0xFFCCE7FE);
-    c_F4F5F7 = const Color(0xFFF4F5F7);
+    c_CCE7FE = const Color(0xFFD6E3FF); // primary-fixed (send bubble)
+    c_F4F5F7 = const Color(0xFFF3F3F7); // surface-container-low (receive bubble)
     c_6085B1 = const Color(0xFF6085B1);
     c_FFB300 = const Color(0xFFFFB300);
     c_FFE1DD = const Color(0xFFFFE1DD);
-    c_707070 = const Color(0xFF707070);
+    c_707070 = const Color(0xFF717786);
+    c_18E875 = const Color(0xFF4EDEA3); // secondary/online green
     _updateOpacityVariants();
   }
 
   static void applyDarkTheme() {
-    c_0089FF = const Color(0xFF6855FF);
-    c_0C1C33 = const Color(0xFFE8E9EC);
-    c_8E9AB0 = const Color(0xFF8E9AB0);
-    c_E8EAEF = const Color(0xFF2A3347);
-    c_FFFFFF = const Color(0xFF161B27);
-    c_F0F2F6 = const Color(0xFF1E2436);
-    c_F8F9FA = const Color(0xFF0D1117);
+    c_0089FF = const Color(0xFFADC6FF); // primary accent (light blue-purple)
+    c_0C1C33 = const Color(0xFFE0E3E5); // on-surface (main text)
+    c_8E9AB0 = const Color(0xFF8C909F); // on-surface-variant (secondary text)
+    c_E8EAEF = const Color(0xFF424754); // outline-variant (dividers)
+    c_FFFFFF = const Color(0xFF1D2022); // surface-container (cards)
+    c_F0F2F6 = const Color(0xFF272A2C); // surface-container-high
+    c_F8F9FA = const Color(0xFF101415); // background
     c_92B3E0 = const Color(0xFF3D4F6E);
-    c_F2F8FF = const Color(0xFF161B27);
-    c_CCE7FE = const Color(0xFF1E3A5F);
-    c_F4F5F7 = const Color(0xFF1E2436);
+    c_F2F8FF = const Color(0xFF1D2022);
+    c_CCE7FE = const Color(0xFF1D2022); // send bubble (matches card)
+    c_F4F5F7 = const Color(0xFF191C1E); // surface-container-low (receive bubble)
     c_6085B1 = const Color(0xFF4A6090);
     c_FFB300 = const Color(0xFFFFB300);
     c_FFE1DD = const Color(0xFF3D1E1A);
-    c_707070 = const Color(0xFF9AA3B4);
+    c_707070 = const Color(0xFF8C909F);
+    c_18E875 = const Color(0xFF4EDEA3); // secondary/online green
     _updateOpacityVariants();
   }
 

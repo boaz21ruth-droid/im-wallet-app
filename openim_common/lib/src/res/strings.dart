@@ -1181,4 +1181,39 @@ class StrRes {
   static String get groupAnnouncement => 'groupAnnouncement'.tr;
   static String get editGroupAnnouncement => 'editGroupAnnouncement'.tr;
   static String get noAnnouncement => 'noAnnouncement'.tr;
+
+  static String get commonSettings => 'commonSettings'.tr;
+  static String get notifications => 'notifications'.tr;
+  static String get privacySecurity => 'privacySecurity'.tr;
+  static String get appearance => 'appearance'.tr;
+  static String get storageTraffic => 'storageTraffic'.tr;
+  static String get dataStorage => 'dataStorage'.tr;
+  static String get other => 'other'.tr;
+  static String get upgradePro => 'upgradePro'.tr;
+  static String get upgradeProSubtitle => 'upgradeProSubtitle'.tr;
+  static String get learnMore => 'learnMore'.tr;
+  static String get editProfile => 'editProfile'.tr;
+  static String get inviteFriend => 'inviteFriend'.tr;
+  static String get activeNow => 'activeNow'.tr;
+  static String get recentChats => 'recentChats'.tr;
+  static String get favAll => 'favAll'.tr;
+  static String get favPersonal => 'favPersonal'.tr;
+  static String get favGroup => 'favGroup'.tr;
+  static String get favFile => 'favFile'.tr;
+
+  static String get wallet => 'wallet'.tr;
+  static String get walletTabLabel => 'walletTabLabel'.tr;
+  static String get newsTabLabel => 'newsTabLabel'.tr;
+  static String get dappTabLabel => 'dappTabLabel'.tr;
+  static String get marketTabLabel => 'marketTabLabel'.tr;
+  static String get totalBalance => 'totalBalance'.tr;
+  static String get receive => 'receive'.tr;
+  static String get swap => 'swap'.tr;
+  static String get buyCoin => 'buyCoin'.tr;
+  static String get bridge => 'bridge'.tr;
+  static String get mainCoins => 'mainCoins'.tr;
+  static String get addWatchlist => 'addWatchlist'.tr;
+  static String get popularDapp => 'popularDapp'.tr;
+  static String get plaza => 'plaza'.tr;
+  static String get comingSoon => 'comingSoon'.tr;
 }
