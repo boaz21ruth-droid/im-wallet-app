@@ -6,14 +6,12 @@ import 'chain_config.dart';
 import 'wallet_models.dart';
 
 class TronService {
-  static const _usdtContract = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-
-  // One Dio instance per base URL, created upfront from chain config
+  final String chainKey;
   late final List<Dio> _clients;
   int _preferred = 0;
 
-  TronService() {
-    final rpcs = chains['tron']!.rpcs;
+  TronService({this.chainKey = 'tron'}) {
+    final rpcs = chains[chainKey]!.rpcs;
     _clients = rpcs
         .map(
           (base) => Dio(BaseOptions(
@@ -88,18 +86,23 @@ class TronService {
   }
 
   Future<List<AssetBalance>> getAllBalances(String address) async {
+    final cfg = chains[chainKey]!;
+    final nativeSymbol = cfg.symbol;
     final trx = await getTrxBalance(address);
-    final usdt = await getTrc20Balance(address, _usdtContract);
-    return [
-      AssetBalance(chainKey: 'tron', symbol: 'TRX', rawBalance: trx, decimals: 6),
-      AssetBalance(
-        chainKey: 'tron',
-        symbol: 'USDT',
-        rawBalance: usdt,
-        decimals: 6,
-        contractAddress: _usdtContract,
-      ),
+    final balances = <AssetBalance>[
+      AssetBalance(chainKey: chainKey, symbol: nativeSymbol, rawBalance: trx, decimals: cfg.decimals),
     ];
+    for (final token in cfg.builtinTokens) {
+      final raw = await getTrc20Balance(address, token.contractAddress);
+      balances.add(AssetBalance(
+        chainKey: chainKey,
+        symbol: token.symbol,
+        rawBalance: raw,
+        decimals: token.decimals,
+        contractAddress: token.contractAddress,
+      ));
+    }
+    return balances;
   }
 
   Future<List<TxRecord>> getTransactionHistory(String address, {int limit = 20}) async {
@@ -126,10 +129,10 @@ class TronService {
           from: value['owner_address'] as String? ?? '',
           to: value['to_address'] as String? ?? '',
           value: amount,
-          decimals: 6,
+          decimals: chains[chainKey]!.decimals,
           timestamp: DateTime.fromMillisecondsSinceEpoch(ts),
           status: 'confirmed',
-          chainKey: 'tron',
+          chainKey: chainKey,
         );
       }).toList();
     } catch (_) {
@@ -166,6 +169,45 @@ class TronService {
     }
   }
 
+  Future<String?> sendTrc20({
+    required Uint8List privateKey,
+    required String contractAddress,
+    required String to,
+    required BigInt amount,
+  }) async {
+    try {
+      final fromHex = tronAddressToHex(privateKey);
+      final toHex = _toHexAddress(to);
+      final contractHex = _toHexAddress(contractAddress);
+      final parameter = _encodeTrc20TransferParams(toHex, amount);
+
+      final buildResp = await _post<Map<String, dynamic>>(
+        '/wallet/triggersmartcontract',
+        data: {
+          'owner_address': fromHex,
+          'contract_address': contractHex,
+          'function_selector': 'transfer(address,uint256)',
+          'parameter': parameter,
+          'fee_limit': 100000000,
+          'call_value': 0,
+        },
+      );
+      final body = buildResp.data ?? {};
+      final result = body['result'] as Map<String, dynamic>?;
+      if (result?['result'] != true) return null;
+
+      final tx = Map<String, dynamic>.from(body['transaction'] as Map<String, dynamic>);
+      final signed = _signTx(tx, privateKey);
+      final broadResp = await _post<Map<String, dynamic>>(
+        '/wallet/broadcasttransaction',
+        data: signed,
+      );
+      return (broadResp.data ?? {})['txid'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // ── Address utilities ─────────────────────────────────────────────────────
 
   static String tronAddressToHex(Uint8List privateKey) {
@@ -180,6 +222,15 @@ class TronService {
     if (input.startsWith('41') && input.length == 42) return input;
     final bytes = _base58Decode(input);
     return _bytesToHex(bytes.sublist(0, 21));
+  }
+
+  /// ABI-encodes params for transfer(address,uint256).
+  /// [toHex] must be 42-char hex starting with '41'. Returns 128-char hex (64 bytes).
+  static String _encodeTrc20TransferParams(String toHex, BigInt amount) {
+    final addrPadded = toHex.substring(2).padLeft(64, '0');
+    var amtHex = amount.toRadixString(16);
+    if (amtHex.length.isOdd) amtHex = '0$amtHex';
+    return addrPadded + amtHex.padLeft(64, '0');
   }
 
   Map<String, dynamic> _signTx(Map<String, dynamic> tx, Uint8List privateKey) {

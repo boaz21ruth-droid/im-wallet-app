@@ -171,14 +171,18 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
   }
 
   Map<String, String> _deriveAddresses(Uint8List seed, int index) {
-    final evmAddr = WalletKey.deriveEVMAddress(seed, index);
+    final evmAddr  = WalletKey.deriveEVMAddress(seed, index);
+    final tronAddr = WalletKey.deriveTRONAddress(seed, index);
     return {
       'eth': evmAddr,
       'bsc': evmAddr,
       'polygon': evmAddr,
       'arbitrum': evmAddr,
       'optimism': evmAddr,
-      'tron': WalletKey.deriveTRONAddress(seed, index),
+      'bsc_testnet': evmAddr,
+      'eth_sepolia': evmAddr,
+      'tron': tronAddr,
+      'tron_shasta': tronAddr,
     };
   }
 
@@ -190,11 +194,19 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
     isLoadingBalances.value = true;
     try {
       final chainKey = selectedChainKey.value;
-      final address = account.addresses[chainKey];
-      if (address == null) return;
+      var address = account.addresses[chainKey];
+      if (address == null) {
+        final cfg = chains[chainKey];
+        if (cfg?.isTron == true) {
+          address = account.addresses['tron'];
+        } else if (cfg?.isTestnet == true) {
+          address = account.addresses['eth'];
+        }
+        if (address == null) return;
+      }
 
-      if (chainKey == 'tron') {
-        final list = await TronService().getAllBalances(address);
+      if (chains[chainKey]?.isTron == true) {
+        final list = await TronService(chainKey: chainKey).getAllBalances(address);
         for (final b in list) {
           balances['$chainKey:${b.symbol}'] = b;
         }
@@ -264,8 +276,21 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
     return t;
   }
 
-  String get currentAddress =>
-      selectedAccount.value?.addresses[selectedChainKey.value] ?? '';
+  String get currentAddress {
+    final chainKey = selectedChainKey.value;
+    final account = selectedAccount.value;
+    if (account == null) return '';
+    var address = account.addresses[chainKey];
+    if (address == null) {
+      final cfg = chains[chainKey];
+      if (cfg?.isTron == true) {
+        address = account.addresses['tron'];
+      } else if (cfg?.isTestnet == true) {
+        address = account.addresses['eth'];
+      }
+    }
+    return address ?? '';
+  }
 
   List<AssetBalance> get currentChainBalances {
     final key = selectedChainKey.value;
@@ -278,11 +303,19 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
     final account = selectedAccount.value;
     if (account == null) return;
     final chainKey = selectedChainKey.value;
-    final address = account.addresses[chainKey];
-    if (address == null) return;
+    var address = account.addresses[chainKey];
+    if (address == null) {
+      final cfg = chains[chainKey];
+      if (cfg?.isTron == true) {
+        address = account.addresses['tron'];
+      } else if (cfg?.isTestnet == true) {
+        address = account.addresses['eth'];
+      }
+      if (address == null) return;
+    }
     try {
-      if (chainKey == 'tron') {
-        txHistory.assignAll(await TronService().getTransactionHistory(address));
+      if (chains[chainKey]?.isTron == true) {
+        txHistory.assignAll(await TronService(chainKey: chainKey).getTransactionHistory(address));
       } else {
         final config = chains[chainKey];
         if (config == null) return;
@@ -291,5 +324,36 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
         svc.dispose();
       }
     } catch (_) {}
+  }
+
+  // ── Testnet mode ──────────────────────────────────────────────────────────
+
+  List<String> get effectiveEnabledChainKeys {
+    final keys = settings.value.enabledChainKeys;
+    if (!settings.value.testnetMode) return keys;
+    return keys
+        .map((k) => testnetEquivalents[k] ?? k)
+        .where((k) => chains.containsKey(k))
+        .toList();
+  }
+
+  Future<void> toggleTestnetMode() async {
+    final newMode = !settings.value.testnetMode;
+    settings.value = settings.value.copyWith(testnetMode: newMode);
+    await WalletStore.saveSettings(settings.value);
+
+    final current = selectedChainKey.value;
+    final cfg = chains[current];
+    if (newMode && cfg != null && !cfg.isTestnet) {
+      final equiv = testnetEquivalents[current];
+      if (equiv != null) selectedChainKey.value = equiv;
+    } else if (!newMode && cfg?.isTestnet == true) {
+      final mainnet = testnetEquivalents.entries
+          .where((e) => e.value == current)
+          .map((e) => e.key)
+          .firstOrNull;
+      if (mainnet != null) selectedChainKey.value = mainnet;
+    }
+    unawaited(refreshBalances());
   }
 }

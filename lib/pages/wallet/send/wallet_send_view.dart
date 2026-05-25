@@ -204,11 +204,20 @@ class _WalletSendViewState extends State<WalletSendView> {
       await logic.vault.withMnemonic(pwd, (mBytes) async {
         final seed = WalletKey.mnemonicToSeed(mBytes);
         try {
-          if (chainKey == 'tron') {
+          if (chains[chainKey]?.isTron == true) {
             final privKey = WalletKey.deriveTRONPrivKey(seed, logic.selectedAccount.value!.index);
             try {
-              final svc = TronService();
-              txHash = await svc.sendTrx(privateKey: privKey, to: to, amountSun: amtRaw);
+              final svc = TronService(chainKey: chainKey);
+              if (asset.isNative) {
+                txHash = await svc.sendTrx(privateKey: privKey, to: to, amountSun: amtRaw);
+              } else {
+                txHash = await svc.sendTrc20(
+                  privateKey: privKey,
+                  contractAddress: asset.contractAddress!,
+                  to: to,
+                  amount: amtRaw,
+                );
+              }
             } finally {
               privKey.fillRange(0, privKey.length, 0);
             }

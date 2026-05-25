@@ -170,46 +170,69 @@ class WalletMainView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '资产',
-            style: TextStyle(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: Styles.c_0C1C33,
-            ),
-          ),
-          SizedBox(height: 12.h),
-          Obx(() => SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: chains.entries.map((entry) {
-                final isSelected = logic.selectedChainKey.value == entry.key;
-                return GestureDetector(
-                  onTap: () => logic.switchChain(entry.key),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    margin: EdgeInsets.only(right: 8.w),
-                    padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
-                    decoration: BoxDecoration(
-                      color: isSelected ? Styles.c_0089FF : Styles.c_FFFFFF,
-                      borderRadius: BorderRadius.circular(20.r),
-                      border: Border.all(
-                        color: isSelected ? Styles.c_0089FF : Styles.c_E8EAEF,
-                      ),
-                    ),
-                    child: Text(
-                      entry.value.name,
-                      style: TextStyle(
-                        fontSize: 13.sp,
-                        color: isSelected ? Colors.white : Styles.c_8E9AB0,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+          Obx(() => Row(
+            children: [
+              Text(
+                '资产',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Styles.c_0C1C33,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                'Testnet',
+                style: TextStyle(fontSize: 12.sp, color: Styles.c_8E9AB0),
+              ),
+              SizedBox(width: 4.w),
+              Transform.scale(
+                scale: 0.75,
+                child: Switch(
+                  value: logic.settings.value.testnetMode,
+                  onChanged: (_) => logic.toggleTestnetMode(),
+                  activeThumbColor: const Color(0xFFFF9800),
+                  activeTrackColor: const Color(0xFFFF9800).withAlpha(100),
+                ),
+              ),
+            ],
           )),
+          SizedBox(height: 12.h),
+          Obx(() {
+            final effectiveKeys = logic.effectiveEnabledChainKeys;
+            return SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: effectiveKeys.map((key) {
+                  final cfg = chains[key]!;
+                  final isSelected = logic.selectedChainKey.value == key;
+                  return GestureDetector(
+                    onTap: () => logic.switchChain(key),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: EdgeInsets.only(right: 8.w),
+                      padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
+                      decoration: BoxDecoration(
+                        color: isSelected ? Styles.c_0089FF : Styles.c_FFFFFF,
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(
+                          color: isSelected ? Styles.c_0089FF : Styles.c_E8EAEF,
+                        ),
+                      ),
+                      child: Text(
+                        cfg.name,
+                        style: TextStyle(
+                          fontSize: 13.sp,
+                          color: isSelected ? Colors.white : Styles.c_8E9AB0,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            );
+          }),
         ],
       ),
     );

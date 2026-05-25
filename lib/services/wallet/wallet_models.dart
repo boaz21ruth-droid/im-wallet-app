@@ -83,6 +83,7 @@ class WalletSettings {
   final bool biometricEnabled;
   final List<String> enabledChainKeys;
   final List<CustomToken> customTokens;
+  final bool testnetMode;
 
   const WalletSettings({
     required this.currency,
@@ -90,6 +91,7 @@ class WalletSettings {
     required this.biometricEnabled,
     required this.enabledChainKeys,
     required this.customTokens,
+    this.testnetMode = false,
   });
 
   static WalletSettings get defaults => const WalletSettings(
@@ -98,6 +100,7 @@ class WalletSettings {
         biometricEnabled: false,
         enabledChainKeys: ['eth', 'bsc', 'polygon'],
         customTokens: [],
+        testnetMode: false,
       );
 
   WalletSettings copyWith({
@@ -106,6 +109,7 @@ class WalletSettings {
     bool? biometricEnabled,
     List<String>? enabledChainKeys,
     List<CustomToken>? customTokens,
+    bool? testnetMode,
   }) =>
       WalletSettings(
         currency: currency ?? this.currency,
@@ -113,6 +117,7 @@ class WalletSettings {
         biometricEnabled: biometricEnabled ?? this.biometricEnabled,
         enabledChainKeys: enabledChainKeys ?? List.from(this.enabledChainKeys),
         customTokens: customTokens ?? List.from(this.customTokens),
+        testnetMode: testnetMode ?? this.testnetMode,
       );
 
   Map<String, dynamic> toJson() => {
@@ -121,6 +126,7 @@ class WalletSettings {
         'biometricEnabled': biometricEnabled,
         'enabledChainKeys': enabledChainKeys,
         'customTokens': customTokens.map((t) => t.toJson()).toList(),
+        'testnetMode': testnetMode,
       };
 
   factory WalletSettings.fromJson(Map<String, dynamic> json) => WalletSettings(
@@ -131,6 +137,7 @@ class WalletSettings {
         customTokens: (json['customTokens'] as List? ?? [])
             .map((e) => CustomToken.fromJson(e as Map<String, dynamic>))
             .toList(),
+        testnetMode: json['testnetMode'] as bool? ?? false,
       );
 }
 

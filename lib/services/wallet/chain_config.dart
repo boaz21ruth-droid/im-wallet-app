@@ -6,6 +6,7 @@ class ChainConfig {
   final String name;
   final int decimals;
   final bool isTron;
+  final bool isTestnet;
   final List<BuiltinToken> builtinTokens;
 
   const ChainConfig({
@@ -16,6 +17,7 @@ class ChainConfig {
     required this.name,
     this.decimals = 18,
     this.isTron = false,
+    this.isTestnet = false,
     this.builtinTokens = const [],
   });
 }
@@ -190,11 +192,69 @@ const chains = <String, ChainConfig>{
       ),
     ],
   ),
+  'bsc_testnet': ChainConfig(
+    chainId: 97,
+    rpcs: [
+      'https://data-seed-prebsc-1-s1.binance.org:8545',
+      'https://data-seed-prebsc-2-s1.binance.org:8545',
+      'https://bsc-testnet.publicnode.com',
+    ],
+    explorer: 'https://api-testnet.bscscan.com/api',
+    symbol: 'tBNB',
+    name: 'BSC Testnet',
+    decimals: 18,
+    isTestnet: true,
+    builtinTokens: [
+      BuiltinToken(
+        symbol: 'USDT',
+        contractAddress: '0x337610d27c682E347C9cD60BD4b3b107C9d34dDd',
+        decimals: 18,
+      ),
+    ],
+  ),
+  'eth_sepolia': ChainConfig(
+    chainId: 11155111,
+    rpcs: [
+      'https://rpc.sepolia.org',
+      'https://ethereum-sepolia.publicnode.com',
+      'https://rpc.ankr.com/eth_sepolia',
+    ],
+    explorer: 'https://api-sepolia.etherscan.io/api',
+    symbol: 'ETH',
+    name: 'Sepolia',
+    decimals: 18,
+    isTestnet: true,
+  ),
+  'tron_shasta': ChainConfig(
+    chainId: 0,
+    rpcs: ['https://api.shasta.trongrid.io'],
+    explorer: 'https://shasta.tronscanapi.com/api',
+    symbol: 'TRX',
+    name: 'Shasta Testnet',
+    decimals: 6,
+    isTron: true,
+    isTestnet: true,
+    builtinTokens: [
+      BuiltinToken(
+        symbol: 'USDT',
+        contractAddress: 'TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs',
+        decimals: 6,
+      ),
+    ],
+  ),
+};
+
+// Maps mainnet chain key → testnet equivalent
+const testnetEquivalents = <String, String>{
+  'eth': 'eth_sepolia',
+  'bsc': 'bsc_testnet',
+  'tron': 'tron_shasta',
 };
 
 const coinGeckoIds = <String, String>{
   'ETH': 'ethereum',
   'BNB': 'binancecoin',
+  'tBNB': 'binancecoin',  // BSC testnet native — use BNB price for display
   'POL': 'matic-network',
   'TRX': 'tron',
   'BTC': 'bitcoin',
