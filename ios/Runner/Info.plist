@@ -75,6 +75,10 @@
 	<string>请点击“好”以允许访问。若不允许，你将无法给好友发送或者上传本地相册图片及视频内容。</string>
 	<key>RTCAppGroupIdentifier</key>
 	<string>group.cn.rentsoft.openim.flutter.rtc</string>
+  <key>NSCameraUsageDescription</key>
+  <string>扫描二维码</string>
+  <key>NSFaceIDUsageDescription</key>
+  <string>用于钱包生物识别解锁</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

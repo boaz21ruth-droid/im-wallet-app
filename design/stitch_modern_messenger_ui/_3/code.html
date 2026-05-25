@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container": "#ededf1",
+                    "error": "#ba1a1a",
+                    "on-primary": "#ffffff",
+                    "on-secondary-fixed-variant": "#44474a",
+                    "secondary-container": "#e0e3e6",
+                    "on-surface": "#1a1c1f",
+                    "secondary": "#5c5f61",
+                    "tertiary-fixed-dim": "#53e16f",
+                    "primary-container": "#0073df",
+                    "primary-fixed": "#d6e3ff",
+                    "on-primary-fixed": "#001b3d",
+                    "on-primary-fixed-variant": "#00468c",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-container": "#626567",
+                    "on-error": "#ffffff",
+                    "surface-variant": "#e2e2e6",
+                    "background": "#f9f9fd",
+                    "primary-fixed-dim": "#a9c7ff",
+                    "on-tertiary-container": "#f7fff2",
+                    "on-tertiary-fixed": "#002107",
+                    "surface-tint": "#005db7",
+                    "secondary-fixed-dim": "#c4c7ca",
+                    "on-tertiary-fixed-variant": "#00531c",
+                    "on-surface-variant": "#414754",
+                    "surface": "#f9f9fd",
+                    "surface-bright": "#f9f9fd",
+                    "tertiary": "#006b27",
+                    "inverse-surface": "#2f3034",
+                    "on-secondary-fixed": "#191c1e",
+                    "tertiary-fixed": "#72fe88",
+                    "error-container": "#ffdad6",
+                    "outline-variant": "#c0c6d6",
+                    "outline": "#717786",
+                    "on-error-container": "#93000a",
+                    "on-secondary": "#ffffff",
+                    "surface-container-high": "#e8e8ec",
+                    "primary": "#005bb3",
+                    "secondary-fixed": "#e0e3e6",
+                    "inverse-primary": "#a9c7ff",
+                    "surface-container-low": "#f3f3f7",
+                    "surface-dim": "#d9dade",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-container": "#fefcff",
+                    "surface-container-highest": "#e2e2e6",
+                    "tertiary-container": "#008733",
+                    "inverse-on-surface": "#f0f0f4",
+                    "on-background": "#1a1c1f"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "bubble-padding-x": "12px",
+                    "margin-main": "16px",
+                    "avatar-size-md": "48px",
+                    "gutter-chat": "12px",
+                    "bubble-padding-y": "8px",
+                    "avatar-size-sm": "32px"
+            },
+            "fontFamily": {
+                    "label-lg": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "headline-sm-mobile": ["Inter"],
+                    "body-md": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "headline-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "label-lg": ["14px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-sm-mobile": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "22px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .settings-card-glow {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        body {
+            -webkit-tap-highlight-color: transparent;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md min-h-screen">
+<!-- Top AppBar (from JSON) -->
+<header class="bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-md border-b border-black/10 dark:border-white/10 flex justify-between items-center w-full px-margin-main h-14 z-40 sticky top-0 transition-all">
+<div class="flex items-center gap-3">
+<img alt="Profile" class="w-8 h-8 rounded-full object-cover" data-alt="A high-resolution close-up portrait of a friendly professional man in his early 30s with warm lighting and a soft bokeh background. The aesthetic is clean and modern, consistent with a high-end tech application interface, using soft natural daylight and vibrant clarity to convey trust and personality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCuWEQvHiyk82j_xNZgHTsL_JV-f4j73zpZMKqGGUrQf3gok2UZPCKL07lB082Rg_VONPgu3luHXsOevbOvlNPetVGDMe0P3YCgVAG8ZlPcI238AjwizaS8dYrOs3FYiDGoABuiEOMg5xsppifZ0llurli9UP1yJKoBQEndpkSwOnE7AAsDwSTeaJ6OJeYnUpaNtBdJ3xNeWYolcjRw-mt-kQIUCOzkLjZYc-km0dyJ6r24v2ArYUiWoheNe_NUna9VPLLuvF-PGKsP"/>
+<h1 class="text-headline-sm-mobile font-headline-sm-mobile font-bold text-on-surface dark:text-on-surface-variant">Settings</h1>
+</div>
+<button class="hover:bg-surface-variant/50 dark:hover:bg-surface-container-highest/50 transition-all active:scale-95 duration-200 p-2 rounded-full">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim">search</span>
+</button>
+</header>
+<main class="max-w-2xl mx-auto px-margin-main pt-8 pb-32">
+<!-- Profile Hero Section -->
+<section class="flex flex-col items-center text-center mb-10">
+<div class="relative group">
+<div class="absolute inset-0 bg-primary/10 rounded-full scale-110 blur-xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+<img alt="Large Avatar" class="w-32 h-32 rounded-full object-cover border-4 border-surface-container-lowest relative z-10 settings-card-glow" data-alt="A professional studio portrait of a man with a slight smile, illuminated by soft rim lighting against a neutral, airy background. The visual style is premium and minimalist, following a quiet modernism aesthetic with high-key lighting and a sense of frictionless utility and human connection." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfLJlcq1r5qDHcp9d90E_ts4qj42AMBbUr43n3f-Z0aIaQgRgd8lk2yFqQwcgUS_TYVrHSQa1-gQapBXmahxsQAtbbarVX8kq8EJtF62MKv1RjzElRJ2JljDI5IAZNdNInLeOOTtICPu3jOWojqsNe3hi50XnlV8-4meXon3uUJ6KhC6cR0k7Fq-IPFAA_NBi_Jt9E5U7m6Mv5dn2-e1FcAQTvxa-RIBcQUowxSzUFY1RrF0Dw9btZK0JzQWG4NoR7gDmCmlDmLfxP"/>
+<button class="absolute bottom-1 right-1 z-20 bg-primary text-on-primary p-2 rounded-full shadow-lg active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+</div>
+<h2 class="mt-6 font-headline-sm text-headline-sm text-on-surface">Alex Thompson</h2>
+<p class="font-label-lg text-label-lg text-secondary">+1 (555) 012-3456</p>
+</section>
+<!-- Menu Groups -->
+<div class="space-y-6">
+<!-- Group 1 -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden settings-card-glow border border-black/5">
+<button class="w-full flex items-center justify-between px-5 py-4 hover:bg-surface-container/50 transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">notifications</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Notifications &amp; Sounds</span>
+</div>
+<span class="material-symbols-outlined text-secondary opacity-40 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<div class="h-px bg-surface-container mx-5"></div>
+<button class="w-full flex items-center justify-between px-5 py-4 hover:bg-surface-container/50 transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-tertiary-container/10 flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined">lock</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Privacy &amp; Security</span>
+</div>
+<span class="material-symbols-outlined text-secondary opacity-40 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<div class="h-px bg-surface-container mx-5"></div>
+<button class="w-full flex items-center justify-between px-5 py-4 hover:bg-surface-container/50 transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-secondary-container/30 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">database</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Data &amp; Storage</span>
+</div>
+<span class="material-symbols-outlined text-secondary opacity-40 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+</div>
+<!-- Group 2 -->
+<div class="bg-surface-container-lowest rounded-xl overflow-hidden settings-card-glow border border-black/5">
+<button class="w-full flex items-center justify-between px-5 py-4 hover:bg-surface-container/50 transition-colors group" onclick="toggleDarkMode()">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-primary-container/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">palette</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Appearance</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-label-sm font-label-sm text-secondary">Light</span>
+<span class="material-symbols-outlined text-secondary opacity-40 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</div>
+</button>
+<div class="h-px bg-surface-container mx-5"></div>
+<button class="w-full flex items-center justify-between px-5 py-4 hover:bg-surface-container/50 transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-secondary-container/30 flex items-center justify-center text-secondary">
+<span class="material-symbols-outlined">help</span>
+</div>
+<span class="font-label-lg text-label-lg text-on-surface">Help</span>
+</div>
+<span class="material-symbols-outlined text-secondary opacity-40 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+</div>
+<!-- Danger Zone -->
+<div class="pt-4">
+<button class="w-full flex items-center justify-center gap-2 px-5 py-4 bg-error-container/20 text-error rounded-xl border border-error/10 font-label-lg hover:bg-error-container/30 active:scale-[0.98] transition-all">
+<span class="material-symbols-outlined">logout</span>
+                    Logout
+                </button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (from JSON) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-md border-t border-black/10 dark:border-white/10">
+<!-- Chats Item -->
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-4 py-1 hover:text-primary dark:hover:text-primary-fixed transition-transform active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined text-2xl">chat_bubble</span>
+<span class="text-label-sm font-label-sm">Chats</span>
+</a>
+<!-- Contacts Item -->
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-4 py-1 hover:text-primary dark:hover:text-primary-fixed transition-transform active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined text-2xl">group</span>
+<span class="text-label-sm font-label-sm">Contacts</span>
+</a>
+<!-- Settings Item (ACTIVE) -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim bg-primary-container/20 rounded-xl px-4 py-1 transition-transform active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined text-2xl" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="text-label-sm font-label-sm">Settings</span>
+</a>
+</nav>
+<script>
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+            } else {
+                html.classList.add('dark');
+            }
+        }
+
+        // Add touch inertia feel to list items
+        document.querySelectorAll('button, a').forEach(el => {
+            el.addEventListener('touchstart', () => {
+                el.style.opacity = '0.7';
+            });
+            el.addEventListener('touchend', () => {
+                el.style.opacity = '1';
+            });
+        });
+    </script>
+</body></html>

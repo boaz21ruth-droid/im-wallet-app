@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container": "#ededf1",
+            "error": "#ba1a1a",
+            "on-primary": "#ffffff",
+            "on-secondary-fixed-variant": "#44474a",
+            "secondary-container": "#e0e3e6",
+            "on-surface": "#1a1c1f",
+            "secondary": "#5c5f61",
+            "tertiary-fixed-dim": "#53e16f",
+            "primary-container": "#0073df",
+            "primary-fixed": "#d6e3ff",
+            "on-primary-fixed": "#001b3d",
+            "on-primary-fixed-variant": "#00468c",
+            "surface-container-lowest": "#ffffff",
+            "on-secondary-container": "#626567",
+            "on-error": "#ffffff",
+            "surface-variant": "#e2e2e6",
+            "background": "#f9f9fd",
+            "primary-fixed-dim": "#a9c7ff",
+            "on-tertiary-container": "#f7fff2",
+            "on-tertiary-fixed": "#002107",
+            "surface-tint": "#005db7",
+            "secondary-fixed-dim": "#c4c7ca",
+            "on-tertiary-fixed-variant": "#00531c",
+            "on-surface-variant": "#414754",
+            "surface": "#f9f9fd",
+            "surface-bright": "#f9f9fd",
+            "tertiary": "#006b27",
+            "inverse-surface": "#2f3034",
+            "on-secondary-fixed": "#191c1e",
+            "tertiary-fixed": "#72fe88",
+            "error-container": "#ffdad6",
+            "outline-variant": "#c0c6d6",
+            "outline": "#717786",
+            "on-error-container": "#93000a",
+            "on-secondary": "#ffffff",
+            "surface-container-high": "#e8e8ec",
+            "primary": "#005bb3",
+            "secondary-fixed": "#e0e3e6",
+            "inverse-primary": "#a9c7ff",
+            "surface-container-low": "#f3f3f7",
+            "surface-dim": "#d9dade",
+            "on-tertiary": "#ffffff",
+            "on-primary-container": "#fefcff",
+            "surface-container-highest": "#e2e2e6",
+            "tertiary-container": "#008733",
+            "inverse-on-surface": "#f0f0f4",
+            "on-background": "#1a1c1f"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "bubble-padding-x": "12px",
+            "margin-main": "16px",
+            "avatar-size-md": "48px",
+            "gutter-chat": "12px",
+            "bubble-padding-y": "8px",
+            "avatar-size-sm": "32px"
+          },
+          "fontFamily": {
+            "label-lg": ["Inter"],
+            "body-sm": ["Inter"],
+            "headline-sm-mobile": ["Inter"],
+            "body-md": ["Inter"],
+            "label-sm": ["Inter"],
+            "headline-sm": ["Inter"]
+          },
+          "fontSize": {
+            "label-lg": ["14px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+            "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+            "headline-sm-mobile": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+            "body-md": ["16px", {"lineHeight": "22px", "fontWeight": "400"}],
+            "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+            "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+          }
+        },
+      },
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #e2e2e6;
+      border-radius: 10px;
+    }
+    .contact-item:active {
+      background-color: #f0f2f5;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md antialiased overflow-hidden h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-md border-b border-black/10 dark:border-white/10 docked full-width top-0 sticky flex justify-between items-center w-full px-margin-main h-14 z-40">
+<div class="flex items-center gap-3">
+<img alt="User profile picture" class="w-8 h-8 rounded-full object-cover" data-alt="A detailed close-up of a professional user profile picture. The person is smiling warmly, lit by soft, natural three-point lighting. The background is a clean, blurred office interior with high-end modern furniture. The overall aesthetic is minimal and corporate-modern, utilizing a bright and optimistic color palette with soft whites and subtle blue undertones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAn5Nfd-PrY4_nF1Bd5zzaTDYWC9_C68VrwRmebivn0SF-3irmkOdMvVjUIVbEvtr3McYZGtmSv70AsRtcBXG4XrVRYHgt2Ag4KKrunAqsVVU688OF1C3NNjBg7j7gfToxfH1k-nGFrx5oBdVKsNxbFawUjJbf_Drn0xTg6ly-BqThyhdlAxCHwVP5sWVenDadWn-zKX5JYLCzS2N8vOULcC6YCgzroI7X0wd8KtrdLueis-SdQEzihfV0rdx2Cc6Dw87sncTINLdKL"/>
+<h1 class="text-headline-sm-mobile font-headline-sm-mobile font-bold text-on-surface dark:text-on-surface-variant">Contacts</h1>
+</div>
+<button class="transition-all active:scale-95 duration-200 hover:bg-surface-variant/50 dark:hover:bg-surface-container-highest/50 p-2 rounded-full">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim" data-icon="search">search</span>
+</button>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 overflow-y-auto custom-scrollbar px-margin-main pt-4 pb-24">
+<!-- Search & Quick Actions -->
+<div class="mb-6 space-y-4">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-xl" data-icon="magnifying_glass">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-xl py-3 pl-10 pr-4 text-body-md focus:ring-2 focus:ring-primary/20 placeholder:text-secondary/60" placeholder="Search contacts" type="text"/>
+</div>
+<div class="grid grid-cols-2 gap-3">
+<button class="flex items-center justify-center gap-2 bg-primary-container text-on-primary-container font-label-lg text-label-lg py-3 rounded-xl transition-all active:scale-95 shadow-sm">
+<span class="material-symbols-outlined text-xl" data-icon="person_add">person_add</span>
+          Add Contact
+        </button>
+<button class="flex items-center justify-center gap-2 bg-secondary-container text-on-secondary-container font-label-lg text-label-lg py-3 rounded-xl transition-all active:scale-95 shadow-sm">
+<span class="material-symbols-outlined text-xl" data-icon="share">share</span>
+          Invite Friends
+        </button>
+</div>
+</div>
+<!-- Contacts List -->
+<section class="space-y-6">
+<!-- Section A -->
+<div>
+<h2 class="text-label-sm font-label-sm text-primary uppercase tracking-widest px-1 mb-2">A</h2>
+<div class="space-y-1">
+<div class="contact-item flex items-center gap-gutter-chat p-2 rounded-xl transition-colors cursor-pointer">
+<div class="relative shrink-0">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="A professional portrait of a person with friendly features, captured in a bright studio environment. The lighting is high-key and soft, emphasizing a warm and approachable expression. The background is a minimalist gradient of light blue and white. The visual style is modern, crisp, and clean, aligning with a high-end corporate messaging application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxGSyjYfuUTn-AVjsLJ9y-n-Mq_wrRLEXkC5xsq1r8YzmF8edEsnfA5tR-N59Kqb3vAlRqF2K0BvEiaIUX21Jr9iSWx3zLHKqmEtvfCq6X2mQ9RoRm8eubHW_gu8giaGWPzgdcyHKGra8iiY029bsxl1Kv2_Pa3iCGr6N0S1YH-x5W6jDtbBsh6MS6uAcEzWScYMJH-JxvuoR2ry0xoN8Y0V8yNYuQe2BqIj780VvHT9Amj737IkWwvS2loAKOcuU4ftal-levSzAW"/>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-tertiary-fixed-dim border-2 border-background rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-lg text-label-lg text-on-surface truncate">Alex Johnson</p>
+<p class="font-body-sm text-body-sm text-secondary truncate">Active now</p>
+</div>
+</div>
+<div class="contact-item flex items-center gap-gutter-chat p-2 rounded-xl transition-colors cursor-pointer">
+<img class="w-12 h-12 rounded-full object-cover shrink-0" data-alt="A close-up photograph of a stylish individual in a modern urban setting. The lighting is natural and bright, highlighting high-quality skin textures and a confident smile. The background shows a soft-focus architectural detail in light grey tones. The color palette is restricted to neutrals and blues, maintaining a consistent professional aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBN2co5ZBuVl8VnSzf8Xo9_CeaC88RPd_Vlq5uG7mKxxxzL9Jam2WPOWECRDxkwGP7gHZr-don83EtJdz2WF-_EeLVcDr0fsBHE4ckz_iyCuMhjjXKxOTF2mNVGSflKLYNuIDGwqVZxWux_2AXkw_CevgVP-7nmr-iAGZHkO8TgC8B3SQ_BAKR01Le6vOtfu59vWplRZFFy4AvU2NQTEEQftfON3DWoFNCjL-jwGOzSv3fd7S097SG_St8o22H9Kt7ulZkqZq_dEUs"/>
+<div class="flex-1 min-w-0">
+<p class="font-label-lg text-label-lg text-on-surface truncate">Alicia Mayer</p>
+<p class="font-body-sm text-body-sm text-secondary truncate">In a meeting...</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Section B -->
+<div>
+<h2 class="text-label-sm font-label-sm text-primary uppercase tracking-widest px-1 mb-2">B</h2>
+<div class="space-y-1">
+<div class="contact-item flex items-center gap-gutter-chat p-2 rounded-xl transition-colors cursor-pointer">
+<div class="relative shrink-0">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="A portrait of a creative professional with a calm and thoughtful expression. The lighting is artistic yet bright, with soft shadows that provide depth. The setting is a minimalist studio with clean white walls and subtle grey accents. The image follows a high-speed information processing aesthetic with clear focus and vibrant but professional colors." src="https://lh3.googleusercontent.com/aida-public/AB6AXuANWX7JwZOXJfAlDQYPssnHnw2nNjgAQtexxV13lgIqz1RBShtohl4R1EYhplmQxAQ97dIiFN9CZ8nXOGWoJTjai8nngokbxV0i5Gyu9Y-pSGpkEp2m7aWsclpw13b9egTzF36rrfdznn8WS7HW0gHi_vHPG_qOwsqKodMvFhHc-922J1j0EuXhB60l-QJ0ZXuy5nwghz_MeMQSNvabSFA1DDuymHRXWVQLLgBvk4Nq0nXyhnChZm0m_5v2Fs5ZaH4CFvqWGvYa-g2e"/>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-secondary-fixed border-2 border-background rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-lg text-label-lg text-on-surface truncate">Ben Wright</p>
+<p class="font-body-sm text-body-sm text-secondary truncate">Busy</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Section D -->
+<div>
+<h2 class="text-label-sm font-label-sm text-primary uppercase tracking-widest px-1 mb-2">D</h2>
+<div class="space-y-1">
+<div class="contact-item flex items-center gap-gutter-chat p-2 rounded-xl transition-colors cursor-pointer">
+<img class="w-12 h-12 rounded-full object-cover shrink-0" data-alt="A portrait of a person with an energetic and friendly vibe. The scene is illuminated by bright, cool-toned daylight. The background is a minimalist interior with touches of greenery. The visual style emphasizes reliability and immediacy through sharp focus and a vibrant, yet clean and professional color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7eC5OumlADc75prtOzY0gJJfJ0v_5A6jH6wKhRp3n1aS4d31804poN5rqoAaFSdgrR8Pfu5Y66hXChlhouG7C2nKtooE0Hi1doFpJTbccvzkuCX_Xuk7-KFJTOQz4Ob6EqKZvUXNEzhCBmnxSmo3xZhKiJNw6d5ywXNe6uerQQpQOxK2ys2NUxBPU-IDgJhD_0AxlgJA-bclzmxMcjzAiUT7FnZVf6Gnza_1_H5n5PBfhTZdJqJQPAlH3BpBt3-sRfU0dkPDIxNrh"/>
+<div class="flex-1 min-w-0">
+<p class="font-label-lg text-label-lg text-on-surface truncate">Daniel Kim</p>
+<p class="font-body-sm text-body-sm text-secondary truncate">At the gym 🏋️</p>
+</div>
+</div>
+<div class="contact-item flex items-center gap-gutter-chat p-2 rounded-xl transition-colors cursor-pointer">
+<div class="relative shrink-0">
+<img class="w-12 h-12 rounded-full object-cover" data-alt="A professional headshot of a businessperson against a light grey, clean background. The person is wearing a smart-casual outfit in navy blue. The lighting is soft and even, creating an approachable and trustworthy appearance. The image reflects a frictionless utility aesthetic with its clear, high-resolution details and modern composition." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIujH-QeoG_H7tT2rTKt8oU6Wo6CJAQPnkGVdgHDBvcLCSFW9ck-avy4no0qdK0umbu02L3R2-kUUWyZNL7hkWY8X2ANlOrt80RYUxhyAGLM22UltiLxfm7rzSXW9vebgRKGjwww2Ok30dkazkrbdnEJOTfYdAEQmuqaWbuGghijwYE5E2cFbgiweJoTZV0QjAxmqREAA-RNwygeqq59T2I0dZW0baW6Qcis7AMFk0UqOMikx-7pMS-qhRO1GOr0Ij1FF-96GhUqiP"/>
+<div class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-tertiary-fixed-dim border-2 border-background rounded-full"></div>
+</div>
+<div class="flex-1 min-w-0">
+<p class="font-label-lg text-label-lg text-on-surface truncate">Diana Smith</p>
+<p class="font-body-sm text-body-sm text-secondary truncate">Active now</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Section H -->
+<div>
+<h2 class="text-label-sm font-label-sm text-primary uppercase tracking-widest px-1 mb-2">H</h2>
+<div class="space-y-1">
+<div class="contact-item flex items-center gap-gutter-chat p-2 rounded-xl transition-colors cursor-pointer">
+<img class="w-12 h-12 rounded-full object-cover shrink-0" data-alt="A cheerful portrait of a person in a bright, modern cafe setting. The background shows soft bokeh effects of a minimalist interior. The lighting is warm and inviting, complementing the corporate modern aesthetic of the app. The colors are vibrant and clear, focusing on human connection and a snappy, responsive feel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHWNfbtDF4_BT17DgW-0hBjBv4pk4M-qr2EMqiDSJ0W9FjrTpecFDga2NZ91N7X-UjQPInn9gk-pyDO5nLMpyycp875S5AJRvG5cCmFzsXsN_WijbiGcC75MGBg0Vf9h7Mr_lDoB2bQRrEHB6ZjNjRw5iQWAVqVAVqsVnber6UbFk3sP9p9WSVzkeeRuRfQkZ9plevOku3GBSwRNV34VE9zBfJ-kVNtYPfwOfl8nPDNBCvMB0H7v6Cu5LO81yMY6pc-RELS12101Ch"/>
+<div class="flex-1 min-w-0">
+<p class="font-label-lg text-label-lg text-on-surface truncate">Hannah Reed</p>
+<p class="font-body-sm text-body-sm text-secondary truncate">Hello there!</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-md border-t border-black/10 dark:border-white/10">
+<!-- Chats Tab -->
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-4 py-1 transition-transform active:scale-90 duration-150 hover:text-primary dark:hover:text-primary-fixed" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="chat_bubble">chat_bubble</span>
+<span class="text-label-sm font-label-sm">Chats</span>
+</a>
+<!-- Contacts Tab (Active) -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary-fixed-dim bg-primary-container/20 rounded-xl px-4 py-1 transition-transform active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="group" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="text-label-sm font-label-sm font-bold">Contacts</span>
+</a>
+<!-- Settings Tab -->
+<a class="flex flex-col items-center justify-center text-secondary dark:text-secondary-fixed-dim px-4 py-1 transition-transform active:scale-90 duration-150 hover:text-primary dark:hover:text-primary-fixed" href="#">
+<span class="material-symbols-outlined text-2xl" data-icon="settings">settings</span>
+<span class="text-label-sm font-label-sm">Settings</span>
+</a>
+</nav>
+<script>
+    // Lightweight interaction for the contact list
+    document.querySelectorAll('.contact-item').forEach(item => {
+      item.addEventListener('click', () => {
+        // Minimal visual feedback beyond CSS :active
+        console.log('Contact clicked:', item.querySelector('p').innerText);
+      });
+    });
+
+    // Handle scroll shadows for TopAppBar
+    const main = document.querySelector('main');
+    const header = document.querySelector('header');
+    main.addEventListener('scroll', () => {
+      if (main.scrollTop > 10) {
+        header.classList.add('shadow-sm');
+      } else {
+        header.classList.remove('shadow-sm');
+      }
+    });
+  </script>
+</body></html>

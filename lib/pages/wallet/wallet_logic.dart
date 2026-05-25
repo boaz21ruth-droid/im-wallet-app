@@ -65,16 +65,21 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
 
   Future<void> _init() async {
     walletState.value = WalletState.loading;
-    final has = await WalletStore.hasWallet();
-    if (!has) {
+    try {
+      final has = await WalletStore.hasWallet();
+      if (!has) {
+        walletState.value = WalletState.noWallet;
+        return;
+      }
+      settings.value = await WalletStore.loadSettings();
+      final accs = await WalletStore.loadAccounts();
+      accounts.assignAll(accs);
+      if (accs.isNotEmpty) selectedAccount.value = accs.first;
+      walletState.value = WalletState.locked;
+    } catch (_) {
+      // Plugin not initialized or Keychain error — treat as fresh wallet
       walletState.value = WalletState.noWallet;
-      return;
     }
-    settings.value = await WalletStore.loadSettings();
-    final accs = await WalletStore.loadAccounts();
-    accounts.assignAll(accs);
-    if (accs.isNotEmpty) selectedAccount.value = accs.first;
-    walletState.value = WalletState.locked;
   }
 
   // ── Unlock ────────────────────────────────────────────────────────────────

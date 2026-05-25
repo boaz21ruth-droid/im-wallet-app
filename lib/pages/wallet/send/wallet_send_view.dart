@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_zxing/flutter_zxing.dart';
 import 'package:get/get.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:openim_common/openim_common.dart';
 import '../../../services/wallet/chain_config.dart';
 import '../../../services/wallet/evm_service.dart';
@@ -247,10 +248,24 @@ class _WalletSendViewState extends State<WalletSendView> {
     }
   }
 
+  Future<void> _pasteAddress() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text?.trim() ?? '';
+    if (text.isNotEmpty) {
+      setState(() {
+        _addrCtrl.text = text;
+        _error = null;
+      });
+    }
+  }
+
   Future<void> _scanQR() async {
     final result = await Get.to<String?>(() => const _QRScanPage());
     if (result != null && result.isNotEmpty) {
-      _addrCtrl.text = result;
+      setState(() {
+        _addrCtrl.text = result;
+        _error = null;
+      });
     }
   }
 
@@ -353,8 +368,14 @@ class _WalletSendViewState extends State<WalletSendView> {
             ),
           ),
           IconButton(
+            icon: Icon(Icons.content_paste_rounded, color: Styles.c_0089FF, size: 22.w),
+            onPressed: _pasteAddress,
+            tooltip: '粘贴地址',
+          ),
+          IconButton(
             icon: Icon(Icons.qr_code_scanner, color: Styles.c_0089FF, size: 22.w),
             onPressed: _scanQR,
+            tooltip: '扫描二维码',
           ),
         ],
       ),
@@ -457,14 +478,14 @@ class _QRScanPage extends StatelessWidget {
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
       ),
-      body: MobileScanner(
-        onDetect: (capture) {
-          final barcode = capture.barcodes.firstOrNull;
-          if (barcode?.rawValue != null) {
-            Get.back(result: barcode!.rawValue);
+      body: ReaderWidget(
+        onScan: (code) {
+          if (code.isValid && code.text != null) {
+            Get.back(result: code.text);
           }
         },
       ),
     );
   }
 }
+

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-container": "#0073df",
+                    "tertiary-fixed": "#72fe88",
+                    "secondary-fixed": "#e0e3e6",
+                    "error": "#ba1a1a",
+                    "tertiary-fixed-dim": "#53e16f",
+                    "on-secondary-fixed-variant": "#44474a",
+                    "on-secondary": "#ffffff",
+                    "surface-bright": "#f9f9fd",
+                    "on-background": "#1a1c1f",
+                    "tertiary": "#006b27",
+                    "on-error": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed": "#002107",
+                    "secondary-fixed-dim": "#c4c7ca",
+                    "on-surface-variant": "#414754",
+                    "on-error-container": "#93000a",
+                    "inverse-primary": "#a9c7ff",
+                    "surface-container-low": "#f3f3f7",
+                    "inverse-on-surface": "#f0f0f4",
+                    "outline": "#717786",
+                    "on-secondary-container": "#626567",
+                    "on-primary": "#ffffff",
+                    "background": "#f9f9fd",
+                    "tertiary-container": "#008733",
+                    "secondary": "#5c5f61",
+                    "primary-fixed": "#d6e3ff",
+                    "on-tertiary": "#ffffff",
+                    "surface-dim": "#d9dade",
+                    "on-tertiary-fixed-variant": "#00531c",
+                    "on-primary-fixed": "#001b3d",
+                    "primary": "#005bb3",
+                    "surface-container-lowest": "#ffffff",
+                    "surface-variant": "#e2e2e6",
+                    "surface-container-high": "#e8e8ec",
+                    "outline-variant": "#c0c6d6",
+                    "surface-container-highest": "#e2e2e6",
+                    "inverse-surface": "#2f3034",
+                    "on-secondary-fixed": "#191c1e",
+                    "primary-fixed-dim": "#a9c7ff",
+                    "on-primary-fixed-variant": "#00468c",
+                    "secondary-container": "#e0e3e6",
+                    "on-surface": "#1a1c1f",
+                    "on-tertiary-container": "#f7fff2",
+                    "surface-tint": "#005db7",
+                    "surface-container": "#ededf1",
+                    "surface": "#f9f9fd",
+                    "on-primary-container": "#fefcff"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "bubble-padding-x": "12px",
+                    "bubble-padding-y": "8px",
+                    "avatar-size-sm": "32px",
+                    "avatar-size-md": "48px",
+                    "gutter-chat": "12px",
+                    "margin-main": "16px",
+                    "margin-mobile": "16px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Inter"],
+                    "label-lg": ["Inter"],
+                    "headline-sm-mobile": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "headline-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "label-lg": ["14px", {"lineHeight": "18px", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                    "headline-sm-mobile": ["18px", {"lineHeight": "24px", "fontWeight": "600"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "22px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .glass-effect {
+            backdrop-filter: blur(12px);
+            background-color: rgba(249, 249, 253, 0.8);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-background min-h-screen pb-20 font-body-md text-body-md selection:bg-primary-fixed selection:text-on-primary-fixed">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-surface border-b border-outline-variant glass-effect"><div class="flex items-center justify-between px-margin-mobile h-14"><h1 class="font-headline-md text-headline-md font-bold text-on-surface">Web3 Wallet</h1><button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high text-primary"><span class="material-symbols-outlined">qr_code_scanner</span></button></div><nav class="flex justify-between px-4 pb-2"><button class="font-label-lg text-label-lg text-primary border-b-2 border-primary pb-1">钱包</button><button class="font-label-lg text-label-lg text-on-surface-variant">资讯</button><button class="font-label-lg text-label-lg text-on-surface-variant">DAPP</button><button class="font-label-lg text-label-lg text-on-surface-variant">行情</button></nav></header>
+<!-- Main Content Canvas -->
+<main class="pt-28 px-margin-main space-y-6"><section class="bg-primary-container p-6 rounded-2xl text-on-primary-container shadow-md"><div class="flex justify-between items-start mb-4"><div><p class="font-label-sm text-label-sm opacity-90">总余额</p><h2 class="text-3xl font-bold">$12,450.80</h2><p class="font-label-sm text-label-sm opacity-80 mt-1">≈ ¥89,270.50</p></div><div class="bg-white/20 px-3 py-1 rounded-full text-xs">Ethereum</div></div><div class="flex items-center gap-2 mb-6"><span class="font-label-sm text-label-sm">0x71C...4921</span><span class="material-symbols-outlined text-sm">content_copy</span></div><div class="grid grid-cols-5 gap-2 text-center"><button class="flex flex-col items-center gap-1"><div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"><span class="material-symbols-outlined">send</span></div><span class="text-[10px]">发送</span></button><button class="flex flex-col items-center gap-1"><div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"><span class="material-symbols-outlined">call_received</span></div><span class="text-[10px]">接收</span></button><button class="flex flex-col items-center gap-1"><div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"><span class="material-symbols-outlined">swap_horiz</span></div><span class="text-[10px]">兑换</span></button><button class="flex flex-col items-center gap-1"><div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"><span class="material-symbols-outlined">payments</span></div><span class="text-[10px]">买币</span></button><button class="flex flex-col items-center gap-1"><div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center"><span class="material-symbols-outlined">bridge</span></div><span class="text-[10px]">跨链</span></button></div></section><section class="space-y-4"><div class="flex items-center justify-between"><h3 class="font-label-lg text-label-lg font-bold">主流币种</h3><button class="text-primary text-xs flex items-center gap-1">添加自选<span class="material-symbols-outlined text-xs">add</span></button></div><div class="space-y-3"><div class="flex items-center justify-between p-3 bg-surface-container-low rounded-xl"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center font-bold text-orange-600">B</div><div><p class="font-label-lg">BTC</p><p class="text-xs text-on-surface-variant">Bitcoin</p></div></div><div class="text-right"><p class="font-label-lg font-bold">$42,890.50</p><p class="text-xs text-tertiary">+2.45%</p></div></div><div class="flex items-center justify-between p-3 bg-surface-container-low rounded-xl"><div class="flex items-center gap-3"><div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center font-bold text-blue-600">E</div><div><p class="font-label-lg">ETH</p><p class="text-xs text-on-surface-variant">Ethereum</p></div></div><div class="text-right"><p class="font-label-lg font-bold">$2,340.20</p><p class="text-xs text-error">-0.15%</p></div></div></div></section><section class="space-y-4"><h3 class="font-label-lg text-label-lg font-bold">热门 DAPP</h3><div class="grid grid-cols-2 gap-3"><div class="p-3 bg-surface-container rounded-xl flex items-center gap-2"><div class="w-8 h-8 bg-pink-100 rounded flex items-center justify-center"><span class="material-symbols-outlined text-pink-500 text-sm">change_history</span></div><div><p class="text-xs font-bold">Uniswap</p><p class="text-[10px] text-on-surface-variant">交易</p></div></div><div class="p-3 bg-surface-container rounded-xl flex items-center gap-2"><div class="w-8 h-8 bg-purple-100 rounded flex items-center justify-center"><span class="material-symbols-outlined text-purple-500 text-sm">account_balance</span></div><div><p class="text-xs font-bold">Aave</p><p class="text-[10px] text-on-surface-variant">借贷</p></div></div></div></section></main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 px-sm pb-safe bg-surface-container border-t border-outline-variant shadow-lg rounded-t-xl">
+<!-- Chat Tab -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined mb-0.5" data-icon="chat">chat</span>
+<span class="font-label-md text-label-md">Chats</span>
+</button>
+<!-- Contacts Tab -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined mb-0.5" data-icon="contacts">contacts</span>
+<span class="font-label-md text-label-md">Contacts</span>
+</button>
+<!-- Favorites Tab (ACTIVE) -->
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 active:scale-95 transition-transform duration-150"><span class="material-symbols-outlined mb-0.5" data-icon="account_balance_wallet">account_balance_wallet</span><span class="font-label-md text-label-md">钱包</span></button>
+<!-- Settings Tab -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 active:scale-95 transition-transform duration-150">
+<span class="material-symbols-outlined mb-0.5" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</button>
+</nav>
+<script>
+        // Simple touch interaction for ripple effect or state simulation
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('mousedown', () => {
+                button.classList.add('opacity-80');
+            });
+            button.addEventListener('mouseup', () => {
+                button.classList.remove('opacity-80');
+            });
+            button.addEventListener('mouseleave', () => {
+                button.classList.remove('opacity-80');
+            });
+        });
+    </script>
+</body></html>

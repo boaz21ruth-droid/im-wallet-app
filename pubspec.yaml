@@ -107,7 +107,7 @@ dependencies:
   bip39: ^1.0.6
   bip32: ^2.0.0
   flutter_secure_storage: ^9.2.2
-  mobile_scanner: ^5.1.0
+  flutter_zxing: ^1.6.1
   pointycastle: ^4.0.0
 
   openim_common:

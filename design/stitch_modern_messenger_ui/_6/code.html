@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>收藏 - 消息应用</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-fixed-dim": "#adc6ff",
+                    "surface-tint": "#adc6ff",
+                    "inverse-on-surface": "#2d3133",
+                    "background": "#101415",
+                    "error-container": "#93000a",
+                    "tertiary-container": "#df7412",
+                    "surface-container-lowest": "#0b0f10",
+                    "on-primary": "#002e6a",
+                    "surface-container-highest": "#323537",
+                    "tertiary-fixed-dim": "#ffb786",
+                    "primary-fixed": "#d8e2ff",
+                    "surface-container-low": "#191c1e",
+                    "primary-container": "#4d8eff",
+                    "on-secondary-fixed-variant": "#005236",
+                    "on-tertiary-container": "#461f00",
+                    "on-error-container": "#ffdad6",
+                    "surface": "#101415",
+                    "outline": "#8c909f",
+                    "on-secondary": "#003824",
+                    "on-surface": "#e0e3e5",
+                    "on-tertiary-fixed-variant": "#723600",
+                    "on-primary-fixed": "#001a42",
+                    "tertiary": "#ffb786",
+                    "outline-variant": "#424754",
+                    "secondary-fixed-dim": "#4edea3",
+                    "on-primary-fixed-variant": "#004395",
+                    "on-background": "#e0e3e5",
+                    "secondary": "#4edea3",
+                    "surface-bright": "#363a3b",
+                    "surface-variant": "#323537",
+                    "surface-container": "#1d2022",
+                    "on-tertiary-fixed": "#311400",
+                    "surface-dim": "#101415",
+                    "on-primary-container": "#00285d",
+                    "error": "#ffb4ab",
+                    "on-error": "#690005",
+                    "inverse-surface": "#e0e3e5",
+                    "secondary-container": "#00a572",
+                    "on-surface-variant": "#c2c6d6",
+                    "on-secondary-container": "#00311f",
+                    "on-tertiary": "#502400",
+                    "inverse-primary": "#005ac2",
+                    "secondary-fixed": "#6ffbbe",
+                    "on-secondary-fixed": "#002113",
+                    "tertiary-fixed": "#ffdcc6",
+                    "primary": "#adc6ff",
+                    "surface-container-high": "#272a2c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "sm": "8px",
+                    "margin-mobile": "16px",
+                    "xl": "40px",
+                    "margin-desktop": "32px",
+                    "xs": "4px",
+                    "lg": "24px",
+                    "gutter": "16px",
+                    "md": "16px",
+                    "base": "4px"
+            },
+            "fontFamily": {
+                    "label-md": ["JetBrains Mono"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Manrope"],
+                    "headline-lg-mobile": ["Manrope"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Manrope"]
+            },
+            "fontSize": {
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        body {
+            background-color: #101415;
+            color: #e0e3e5;
+            -webkit-font-smoothing: antialiased;
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="dark selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full bg-surface dark:bg-surface border-b border-outline-variant dark:border-outline-variant z-50 flex items-center justify-between px-margin-mobile h-14">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-highest border border-outline-variant">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A high-quality 3D rendered avatar of a professional male with a friendly expression. He has short styled dark hair and wears modern glasses. The background is a clean, dark gray gradient that fits a professional messaging app aesthetic. The lighting is cinematic, highlighting the facial features with soft, blue-toned rim light." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpTk2CmjsYBUkRPK41a58kRJ5WzZh6499jHqI1DXPBQTNRiFNyz3G4b1TWaXKqnaqY12_I3EoQHEu2iaiXggMkB4-oxA1O4jZZ9B2Dg8gNMJtIbVgMGQjfD0nPwBd-TMzKvwgZsAW61pmcC0K9Vpwum0eWOegtO5WebCkNxGBF_T8C3HExlufPFqlx2jauF40qDGWtu_1ahzV4TZp0MUaJpCKRRzhBmYwYB6cfRMIQJQNgxCKRXz2awVQQL8qFkiOqdtTXi6fTAxm2"/>
+</div>
+<h1 class="font-headline-md text-headline-md font-bold text-on-surface dark:text-on-surface">收藏</h1>
+</div>
+<div class="flex items-center">
+<button class="p-2 text-primary dark:text-primary hover:bg-surface-container-high dark:hover:bg-surface-container-high rounded-full transition-colors duration-200">
+<span class="material-symbols-outlined" data-icon="search">search</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-14 pb-20 px-margin-mobile max-w-screen-md mx-auto min-h-screen">
+<!-- Category Chips -->
+<div class="flex gap-2 py-lg overflow-x-auto hide-scrollbar">
+<button class="px-4 py-1.5 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md transition-transform active:scale-95 whitespace-nowrap">全部收藏</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors whitespace-nowrap">个人</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors whitespace-nowrap">群组</button>
+<button class="px-4 py-1.5 rounded-full bg-surface-container text-on-surface-variant border border-outline-variant font-label-md text-label-md hover:bg-surface-container-high transition-colors whitespace-nowrap">文件</button>
+</div>
+<!-- Featured Favorites Grid -->
+<section class="mb-xl">
+<h2 class="font-headline-md text-headline-md font-semibold mb-md text-on-surface">常联系</h2>
+<div class="grid grid-cols-2 gap-md">
+<!-- Favorite Card 1 -->
+<div class="p-md rounded-xl bg-surface-container border border-outline-variant hover:bg-surface-container-high transition-all group cursor-pointer relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex flex-col items-center text-center">
+<div class="w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-primary to-secondary mb-sm">
+<img alt="Anna" class="w-full h-full rounded-full border-2 border-surface-container object-cover" data-alt="Close-up portrait of a woman with vibrant, creative styling, featuring long dyed hair and a warm smile. The image is set against a dark, minimalist interior studio background with sophisticated purple and blue ambient lighting. The visual style is crisp and modern, emphasizing high contrast and high-definition textures suitable for a premium communication platform." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWG_7nhLyo9sPehS8-N3ykketFbdNGihvM6nVk_EU6nSPjWhp-CFNXopARQES9Mz_pp8ow8qQzWQohN4rvAdidQ0W1XeQgiOebnzv1ArAI9fCrlvhJOxsbQtFgvDyRq9TXpdKLrRkpHCQdxn7kq2exM9UqO9ACsgp9NA3Ks6jQvoYdqsJ6IU5BzC_UzVc9AetqLLdIxTG5jkn2Z7OAQ3WYOmc2xPT95gR5LXxJ1nFjR9txNi9jPuad_XQgd-Z7k_MxiBfkEm9NqE3m"/>
+</div>
+<span class="font-body-lg text-body-lg font-bold text-on-surface">林安娜</span>
+<span class="font-label-md text-label-md text-on-surface-variant">产品经理</span>
+</div>
+</div>
+<!-- Favorite Card 2 -->
+<div class="p-md rounded-xl bg-surface-container border border-outline-variant hover:bg-surface-container-high transition-all group cursor-pointer relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="flex flex-col items-center text-center">
+<div class="w-16 h-16 rounded-full p-0.5 bg-gradient-to-tr from-secondary to-tertiary mb-sm">
+<img alt="Design Team" class="w-full h-full rounded-full border-2 border-surface-container object-cover" data-alt="A stylized group avatar representing a creative design team. The icon features clean, modern vector shapes of multiple heads overlapping, using a palette of vibrant blues, emerald greens, and soft whites. The background is a deep matte black, creating a high-end corporate tech feel. The lighting suggests a glowing screen reflection on the figures." src="https://lh3.googleusercontent.com/aida-public/AB6AXuATnVmhtB92N0SgiHquxyyAJ7O1XWyxNotpZKa-A60RHC2FN7H5QbN6zgm42_Etv3tozvYkcl8MmkO02j7Jrc8ZqmMmREzK5CFQD8o0nOILFWb82TKjSvjp7esHK9S5vpuyHxIsNLGl8QjZmFmEAEDVFrZg8m_yQxmZn8L-NZh9uGlLvS3kMp-T1OA1NBvMRT_icSDz3kwL0nOAooHvdrk8o_npuMKyXHRDyUGaeb6CQFtfDhtpX3YnU0cOtu8_W82Poyj0hWa_PVml"/>
+</div>
+<span class="font-body-lg text-body-lg font-bold text-on-surface">设计委员会</span>
+<span class="font-label-md text-label-md text-on-surface-variant">12 位成员</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Detailed Favorites List -->
+<section>
+<h2 class="font-headline-md text-headline-md font-semibold mb-md text-on-surface">全部收藏</h2>
+<div class="space-y-base">
+<!-- List Item 1 -->
+<div class="flex items-center gap-md p-md bg-surface-container border border-outline-variant rounded-xl hover:bg-surface-container-high transition-colors cursor-pointer">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-highest flex-shrink-0">
+<img alt="Zhang" class="w-full h-full object-cover" data-alt="A detailed portrait of a senior tech professional with graying hair and a confident, calm expression. The subject is wearing a high-quality dark turtleneck sweater. The setting is a blurred modern office at night with city lights visible through the window. The overall mood is professional, sophisticated, and trustworthy, using a cool-toned dark color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC16hHBYWl3gV7sHJ05xC-aPAppFSb-u5lixEltiNRewgBl_VasXGuxKMciIlHPhK6zvZQrrGo2Pjc6NnDsKIhLzJge6ahx5aOd-bn1nwbk2jAT3CQkKCzvFq50vh1HPCWOKV9MWH-TG4xjKp2fECe2GliylJujJWsgXb3_tT647O801qN-rYz8LQ6aSbJnpZ98imsOTsWzApnfwhKUPhU0L3aR1pM8cSlNuGvfzqoTwp18O7V3tNihyZB-i1CYgzQGbnl6-gNxziqf"/>
+</div>
+<div class="flex-grow min-w-0">
+<div class="flex justify-between items-center">
+<h3 class="font-body-lg text-body-lg font-bold text-on-surface truncate">张总</h3>
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">关于下周的技术架构评审...</p>
+</div>
+</div>
+<!-- List Item 2 -->
+<div class="flex items-center gap-md p-md bg-surface-container border border-outline-variant rounded-xl hover:bg-surface-container-high transition-colors cursor-pointer">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-highest flex-shrink-0">
+<img alt="Ops Group" class="w-full h-full object-cover" data-alt="An abstract icon representating operational excellence and cloud infrastructure. It features interconnected nodes and geometric lines glowing in a soft emerald green against a deep charcoal background. The design is sleek, technical, and conveys a sense of high-velocity data and robust systems. The lighting is low-key with vibrant neon accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhulYfci7-ypMiCC1_PEQN-haHBhssB_bLto9EqLr9F6glH_R2pqUzRAKPFDSKjU-REW-CbZqw92pw1I5F6po4UeeT9-MDK4e3R1nVHFevRNQz5kaq0QE14QsFea68EFcIQJLOqdJi-ZiDWzwqNgAmkIevNWkseJloXxz2SLQOJZ8qp06QjeNlqKYSCkHYKb5MWJ244XzbpGoG8B8WHl4gD0KypcCsksQ-LWbgJIiklS5AIhj35-usnxrcYQh8D3bRXrJSakeOjuha"/>
+</div>
+<div class="flex-grow min-w-0">
+<div class="flex justify-between items-center">
+<h3 class="font-body-lg text-body-lg font-bold text-on-surface truncate">运维紧急群</h3>
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">已修复：生产环境数据库连接池...</p>
+</div>
+</div>
+<!-- List Item 3 -->
+<div class="flex items-center gap-md p-md bg-surface-container border border-outline-variant rounded-xl hover:bg-surface-container-high transition-colors cursor-pointer">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-highest flex-shrink-0">
+<img alt="Chen" class="w-full h-full object-cover" data-alt="A professional young woman with glasses and a friendly, intelligent gaze. She has dark hair tied back and is wearing a sleek, modern blazer. The environment is a clean, minimal tech workspace with soft focus. The color palette is dominated by deep blues and charcoals, highlighted by soft, natural-looking key light that gives the portrait a high-end, crisp finish." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBEO_GxDZRzrV76_oCnNl-5B0-eN6F7vWwyRadAs-Hnw9hHsEt1k57A65VGAliSklJy4gVcBiufQwRp8cvdji026NVPN3Rpjoc64KgK_gbV4Am4JAkmbL22enC9HqjrrvRLgn587hacT-lALzX6883kPo7H2EnWZUJ3BOorECUydymgSwZzrgOaOiX9Pb-LKH4M825CBpPVEmPcnAO3GP-fOZ_uvP5DUQVIoHVk56LnvT7vSdtvfEJ-TEbq0gwJx7EgTVGGyqaC3OyQ"/>
+</div>
+<div class="flex-grow min-w-0">
+<div class="flex justify-between items-center">
+<h3 class="font-body-lg text-body-lg font-bold text-on-surface truncate">陈思佳</h3>
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">刚才提到的原型图已经上传到云端</p>
+</div>
+</div>
+<!-- List Item 4 (File Favorite) -->
+<div class="flex items-center gap-md p-md bg-surface-container border border-outline-variant rounded-xl hover:bg-surface-container-high transition-colors cursor-pointer">
+<div class="w-12 h-12 rounded-xl bg-primary-container/20 flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-primary text-[28px]" data-icon="description">description</span>
+</div>
+<div class="flex-grow min-w-0">
+<div class="flex justify-between items-center">
+<h3 class="font-body-lg text-body-lg font-bold text-on-surface truncate">2024年Q3财报草稿.pdf</h3>
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant">由 王经理 分享 · 2.4 MB</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Empty state spacer -->
+<div class="h-10"></div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-16 px-sm pb-safe bg-surface-container dark:bg-surface-container border-t border-outline-variant dark:border-outline-variant shadow-lg rounded-t-xl">
+<!-- Chats Tab -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-4 py-1 hover:bg-surface-variant dark:hover:bg-surface-variant active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="chat">chat</span>
+<span class="font-label-md text-label-md">Chats</span>
+</a>
+<!-- Contacts Tab -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-4 py-1 hover:bg-surface-variant dark:hover:bg-surface-variant active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="contacts">contacts</span>
+<span class="font-label-md text-label-md">Contacts</span>
+</a>
+<!-- Favorites Tab (ACTIVE) -->
+<a class="flex flex-col items-center justify-center bg-primary-container dark:bg-primary-container text-on-primary-container dark:text-on-primary-container rounded-full px-4 py-1 active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="star" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-label-md">Favorites</span>
+</a>
+<!-- Settings Tab -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant px-4 py-1 hover:bg-surface-variant dark:hover:bg-surface-variant active:scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</nav>
+<script>
+        // Micro-interaction for chips
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', function() {
+                if (this.classList.contains('font-label-md')) {
+                    const parent = this.parentElement;
+                    parent.querySelectorAll('button').forEach(btn => {
+                        btn.classList.remove('bg-primary-container', 'text-on-primary-container');
+                        btn.classList.add('bg-surface-container', 'text-on-surface-variant');
+                    });
+                    this.classList.add('bg-primary-container', 'text-on-primary-container');
+                    this.classList.remove('bg-surface-container', 'text-on-surface-variant');
+                }
+            });
+        });
+    </script>
+</body></html>
