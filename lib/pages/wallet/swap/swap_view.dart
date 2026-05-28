@@ -48,7 +48,6 @@ class SwapView extends StatelessWidget {
               label: '支付',
               tokenSymbol: 'ETH (mock)',
               amount: '1.0',
-              isReadOnly: false,
             ),
             SizedBox(height: 12.h),
             Center(
@@ -69,7 +68,6 @@ class SwapView extends StatelessWidget {
               label: '获得',
               tokenSymbol: 'USDT (mock)',
               amount: '3232.50',
-              isReadOnly: true,
             ),
             SizedBox(height: 20.h),
             _QuoteInfoRow(label: '报价方', value: '0x'),
@@ -140,13 +138,11 @@ class _TokenCard extends StatelessWidget {
   final String label;
   final String tokenSymbol;
   final String amount;
-  final bool isReadOnly;
 
   const _TokenCard({
     required this.label,
     required this.tokenSymbol,
     required this.amount,
-    required this.isReadOnly,
   });
 
   @override

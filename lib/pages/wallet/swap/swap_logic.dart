@@ -5,7 +5,7 @@ import '../../../services/wallet/swap/swap_models.dart';
 import '../wallet_logic.dart';
 
 class SwapLogic extends GetxController {
-  final WalletLogic _wallet = Get.find<WalletLogic>();
+  final WalletLogic wallet = Get.find<WalletLogic>();
 
   /// Independent chain selection — does NOT mutate WalletLogic.selectedChainKey.
   final swapChainKey = 'eth'.obs;
@@ -22,10 +22,8 @@ class SwapLogic extends GetxController {
   /// Which provider the user has selected. MVP: always 'zerox'.
   final providerId = 'zerox'.obs;
 
-  WalletLogic get wallet => _wallet;
-
   String get takerAddress {
-    final acc = _wallet.selectedAccount.value;
+    final acc = wallet.selectedAccount.value;
     if (acc == null) return '';
     return acc.addresses[swapChainKey.value] ?? '';
   }
