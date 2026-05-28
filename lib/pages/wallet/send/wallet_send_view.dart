@@ -5,12 +5,14 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_zxing/flutter_zxing.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
+import '../../../services/totp_service.dart';
 import '../../../services/wallet/chain_config.dart';
 import '../../../services/wallet/evm_service.dart';
 import '../../../services/wallet/tron_service.dart';
 import '../../../services/wallet/wallet_key.dart';
 import '../../../services/wallet/wallet_models.dart';
 import '../wallet_logic.dart';
+import 'totp_verify_dialog.dart';
 
 class WalletSendView extends StatefulWidget {
   final String? prefillAddress;
@@ -189,7 +191,24 @@ class _WalletSendViewState extends State<WalletSendView> {
 
   Future<void> _sendTransaction() async {
     setState(() => _sending = true);
-    Get.back(); // close bottom sheet
+    Get.back(); // close password bottom sheet
+
+    // Gate on Google Authenticator (TOTP) if the user has it enabled.
+    // The dialog only completes when the backend accepts the code or the user
+    // explicitly cancels. The backend treats users without TOTP as a pass-through.
+    final totpEnabled = await TotpService.status();
+    if (totpEnabled) {
+      if (!mounted) {
+        setState(() => _sending = false);
+        return;
+      }
+      final ok = await showTotpVerifyDialog(context);
+      if (!ok) {
+        setState(() => _sending = false);
+        return;
+      }
+    }
+
     EasyLoading.show(status: '发送中...');
     try {
       final pwd = _pwdCtrl.text;
@@ -419,7 +438,9 @@ class _WalletSendViewState extends State<WalletSendView> {
                     ),
                     const Spacer(),
                     Text(
-                      b.balance.toStringAsFixed(4),
+                      b.balance < 1
+                          ? b.balance.toStringAsFixed(6)
+                          : b.balance.toStringAsFixed(4),
                       style: TextStyle(fontSize: 13.sp, color: Styles.c_8E9AB0),
                     ),
                   ],
@@ -445,6 +466,18 @@ class _WalletSendViewState extends State<WalletSendView> {
             child: TextField(
               controller: _amtCtrl,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                // Replace Chinese full-stop 。 with ASCII period (Chinese keyboard quirk)
+                TextInputFormatter.withFunction((oldVal, newVal) {
+                  final fixed = newVal.text.replaceAll('。', '.');
+                  if (fixed == newVal.text) return newVal;
+                  return newVal.copyWith(
+                    text: fixed,
+                    selection: TextSelection.collapsed(offset: fixed.length),
+                  );
+                }),
+                FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
+              ],
               style: TextStyle(fontSize: 16.sp, color: Styles.c_0C1C33),
               decoration: InputDecoration(
                 hintText: '0.0',

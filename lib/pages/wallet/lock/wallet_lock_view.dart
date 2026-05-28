@@ -68,7 +68,7 @@ class _WalletLockViewState extends State<WalletLockView> {
     return Scaffold(
       backgroundColor: Styles.c_F8F9FA,
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 24.w),
           child: Column(
             children: [

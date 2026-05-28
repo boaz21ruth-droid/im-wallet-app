@@ -32,6 +32,14 @@ class AccountSetupPage extends StatelessWidget {
                   value: logic.curLanguage.value,
                   onTap: logic.languageSetting,
                   showRightArrow: true,
+                ),
+                10.verticalSpace,
+                _buildItemView(
+                  label: 'Google 验证器',
+                  value: logic.totpEnabled.value ? '已开启' : '未开启',
+                  onTap: logic.toggleTotp,
+                  showRightArrow: true,
+                  isTopRadius: true,
                   isBottomRadius: true,
                 ),
               ],
@@ -73,6 +81,10 @@ class AccountSetupPage extends StatelessWidget {
                 children: [
                   label.toText..style = textStyle ?? Styles.ts_0C1C33_17sp,
                   const Spacer(),
+                  if (value != null && value.isNotEmpty) ...[
+                    Text(value, style: TextStyle(fontSize: 14.sp, color: Styles.c_8E9AB0)),
+                    SizedBox(width: 6.w),
+                  ],
                   if (showSwitchButton)
                     CupertinoSwitch(
                       value: switchOn,

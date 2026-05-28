@@ -10,6 +10,8 @@ import '../../services/wallet/mnemonic_vault.dart';
 import '../../services/wallet/tron_service.dart';
 import '../../services/wallet/wallet_key.dart';
 import '../../services/wallet/wallet_models.dart';
+import '../../services/wallet/backend_wallet_service.dart';
+import '../../core/controller/im_controller.dart';
 import '../../services/wallet/wallet_store.dart';
 
 class WalletLogic extends GetxController with WidgetsBindingObserver {
@@ -20,23 +22,29 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
   final settings = Rx<WalletSettings>(WalletSettings.defaults);
 
   final balances = <String, AssetBalance>{}.obs; // key: "$chainKey:$symbol"
-  final coinPrices = <String, CoinPrice>{}.obs;   // key: symbol (e.g. "ETH")
+  final coinPrices = <String, CoinPrice>{}.obs; // key: symbol (e.g. "ETH")
   final txHistory = <TxRecord>[].obs;
+  final tokenHistory = <TxRecord>[].obs;
   final marketList = <CoinMarketData>[].obs;
 
   final isLoadingBalances = false.obs;
   final isLoadingPrices = false.obs;
   final isLoadingMarket = false.obs;
+  final isLoadingTokenHistory = false.obs;
 
   final newsFilter = 0.obs; // 0=广场, 1=公告
 
-  final vault = MnemonicVault();
+  late WalletStore _store;
+  late MnemonicVault vault;
   Timer? _autoLockTimer;
   DateTime? _backgroundedAt;
 
   @override
   void onInit() {
     super.onInit();
+    final userID = Get.find<IMController>().userInfo.value.userID ?? '';
+    _store = WalletStore(userID);
+    vault = MnemonicVault(userID);
     WidgetsBinding.instance.addObserver(this);
     _init();
   }
@@ -66,13 +74,13 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
   Future<void> _init() async {
     walletState.value = WalletState.loading;
     try {
-      final has = await WalletStore.hasWallet();
+      final has = await _store.hasWallet();
       if (!has) {
         walletState.value = WalletState.noWallet;
         return;
       }
-      settings.value = await WalletStore.loadSettings();
-      final accs = await WalletStore.loadAccounts();
+      settings.value = await _store.loadSettings();
+      final accs = await _store.loadAccounts();
       accounts.assignAll(accs);
       if (accs.isNotEmpty) selectedAccount.value = accs.first;
       walletState.value = WalletState.locked;
@@ -91,6 +99,7 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
       _scheduleAutoLock();
       unawaited(refreshBalances());
       unawaited(refreshPrices());
+      unawaited(_registerBackendAddresses());
     }
     return ok;
   }
@@ -102,14 +111,56 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
       _scheduleAutoLock();
       unawaited(refreshBalances());
       unawaited(refreshPrices());
+      unawaited(_registerBackendAddresses());
     }
     return ok;
+  }
+
+  Future<void> _registerBackendAddresses() async {
+    final account = selectedAccount.value;
+    if (account == null || account.addresses.isEmpty) return;
+    await BackendWalletService.registerAddresses(account.addresses);
   }
 
   void lockWallet() {
     vault.lock();
     _autoLockTimer?.cancel();
     walletState.value = WalletState.locked;
+  }
+
+  Future<void> deleteLocalWallet() async {
+    _autoLockTimer?.cancel();
+
+    // Storage deletes can fail independently (Keychain ACL, locked device).
+    // Catch each so a single failure doesn't abort the whole cleanup, and so
+    // the caller sees a single aggregated error.
+    final errors = <String>[];
+    try {
+      await vault.deleteWallet();
+    } catch (e) {
+      debugPrint('vault.deleteWallet failed: $e');
+      errors.add('vault: $e');
+    }
+    try {
+      await _store.clear();
+    } catch (e) {
+      debugPrint('_store.clear failed: $e');
+      errors.add('store: $e');
+    }
+
+    // Always reset in-memory state — Obx-driven UI will switch to
+    // WalletOnboardView. Even if storage deletes failed, the user is locked
+    // out of the wallet until they re-enter a password.
+    accounts.clear();
+    selectedAccount.value = null;
+    balances.clear();
+    txHistory.clear();
+    tokenHistory.clear();
+    walletState.value = WalletState.noWallet;
+
+    if (errors.isNotEmpty) {
+      throw Exception(errors.join('; '));
+    }
   }
 
   void _scheduleAutoLock() {
@@ -136,7 +187,9 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
   }
 
   Future<void> importWallet(String mnemonic, String password) async {
-    if (!WalletKey.validateMnemonic(mnemonic)) throw ArgumentError('Invalid mnemonic');
+    if (!WalletKey.validateMnemonic(mnemonic)) {
+      throw ArgumentError('Invalid mnemonic');
+    }
     final bytes = Uint8List.fromList(utf8.encode(mnemonic));
     await vault.create(bytes, password);
     bytes.fillRange(0, bytes.length, 0);
@@ -155,23 +208,24 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
         seed.fillRange(0, seed.length, 0);
       }
     });
-    await WalletStore.saveAccounts([account]);
-    await WalletStore.saveNextIndex(1);
+    await _store.saveAccounts([account]);
+    await _store.saveNextIndex(1);
     accounts.assignAll([account]);
     selectedAccount.value = account;
   }
 
   Future<void> _afterCreate(String password) async {
     await vault.unlock(password);
-    settings.value = await WalletStore.loadSettings();
+    settings.value = await _store.loadSettings();
     walletState.value = WalletState.unlocked;
     _scheduleAutoLock();
     unawaited(refreshBalances());
     unawaited(refreshPrices());
+    unawaited(_registerBackendAddresses());
   }
 
   Map<String, String> _deriveAddresses(Uint8List seed, int index) {
-    final evmAddr  = WalletKey.deriveEVMAddress(seed, index);
+    final evmAddr = WalletKey.deriveEVMAddress(seed, index);
     final tronAddr = WalletKey.deriveTRONAddress(seed, index);
     return {
       'eth': evmAddr,
@@ -206,7 +260,8 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
       }
 
       if (chains[chainKey]?.isTron == true) {
-        final list = await TronService(chainKey: chainKey).getAllBalances(address);
+        final list =
+            await TronService(chainKey: chainKey).getAllBalances(address);
         for (final b in list) {
           balances['$chainKey:${b.symbol}'] = b;
         }
@@ -315,7 +370,8 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
     }
     try {
       if (chains[chainKey]?.isTron == true) {
-        txHistory.assignAll(await TronService(chainKey: chainKey).getTransactionHistory(address));
+        txHistory.assignAll(await TronService(chainKey: chainKey)
+            .getTransactionHistory(address));
       } else {
         final config = chains[chainKey];
         if (config == null) return;
@@ -324,6 +380,71 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
         svc.dispose();
       }
     } catch (_) {}
+  }
+
+  Future<void> loadTokenHistory(AssetBalance asset) async {
+    final account = selectedAccount.value;
+    if (account == null) return;
+    final chainKey = selectedChainKey.value;
+    var address = account.addresses[chainKey];
+    if (address == null) {
+      final cfg = chains[chainKey];
+      if (cfg?.isTron == true) {
+        address = account.addresses['tron'];
+      } else if (cfg?.isTestnet == true) {
+        address = account.addresses['eth'];
+      }
+      if (address == null) return;
+    }
+
+    isLoadingTokenHistory.value = true;
+    tokenHistory.clear();
+    try {
+      // Try backend first
+      final backendRecords = await BackendWalletService.getTxHistory(
+        chainKey: chainKey,
+        contractAddress: asset.contractAddress,
+      );
+      if (backendRecords != null) {
+        tokenHistory.assignAll(backendRecords);
+        return;
+      }
+
+      // Fall back to client-side RPC
+      List<TxRecord> records;
+      if (chains[chainKey]?.isTron == true) {
+        final svc = TronService(chainKey: chainKey);
+        if (asset.isNative) {
+          records = await svc.getTransactionHistory(address);
+        } else {
+          records = await svc.getTrc20TransferHistory(
+              address, asset.contractAddress!);
+        }
+      } else {
+        final config = chains[chainKey];
+        if (config == null) return;
+        final svc = EvmService(config, chainKey);
+        if (asset.isNative) {
+          records = await svc.getTransactionHistory(address);
+        } else {
+          records = await svc.getErc20TransferHistory(
+              address, asset.contractAddress!);
+        }
+        svc.dispose();
+      }
+      tokenHistory.assignAll(records);
+    } catch (_) {
+    } finally {
+      isLoadingTokenHistory.value = false;
+    }
+  }
+
+  // ── Settings ──────────────────────────────────────────────────────────────
+
+  Future<void> setAutoLockSeconds(int seconds) async {
+    settings.value = settings.value.copyWith(autoLockSeconds: seconds);
+    await _store.saveSettings(settings.value);
+    _scheduleAutoLock();
   }
 
   // ── Testnet mode ──────────────────────────────────────────────────────────
@@ -340,7 +461,7 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
   Future<void> toggleTestnetMode() async {
     final newMode = !settings.value.testnetMode;
     settings.value = settings.value.copyWith(testnetMode: newMode);
-    await WalletStore.saveSettings(settings.value);
+    await _store.saveSettings(settings.value);
 
     final current = selectedChainKey.value;
     final cfg = chains[current];

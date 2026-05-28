@@ -18,7 +18,7 @@ class TouchCloseSoftKeyboard extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
       onTap: () {
-        FocusScope.of(context).requestFocus(FocusNode());
+        FocusScope.of(context).unfocus();
         onTouch?.call();
       },
       child: isGradientBg

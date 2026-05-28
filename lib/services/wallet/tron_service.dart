@@ -140,6 +140,48 @@ class TronService {
     }
   }
 
+  Future<List<TxRecord>> getTrc20TransferHistory(
+    String address,
+    String contractAddress, {
+    int limit = 20,
+  }) async {
+    try {
+      final resp = await _get<Map<String, dynamic>>(
+        '/v1/accounts/$address/transactions/trc20',
+        queryParameters: {
+          'limit': limit,
+          'contract_address': contractAddress,
+          'only_confirmed': true,
+        },
+      );
+      final data = resp.data ?? {};
+      final list = data['data'] as List? ?? [];
+      return list.map((e) {
+        final m = e as Map<String, dynamic>;
+        final valueStr = (m['value'] ?? '0').toString();
+        final tokenInfo = m['token_info'] as Map<String, dynamic>? ?? {};
+        final decimals = tokenInfo['decimals'] as int? ?? 6;
+        final symbol = tokenInfo['symbol'] as String?;
+        return TxRecord(
+          hash: m['transaction_id'] as String? ?? '',
+          from: m['from'] as String? ?? '',
+          to: m['to'] as String? ?? '',
+          value: BigInt.tryParse(valueStr) ?? BigInt.zero,
+          decimals: decimals,
+          timestamp: DateTime.fromMillisecondsSinceEpoch(
+            m['block_timestamp'] as int? ?? 0,
+          ),
+          status: 'confirmed',
+          chainKey: chainKey,
+          tokenSymbol: symbol,
+          tokenContract: contractAddress,
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   // ── Write operations ──────────────────────────────────────────────────────
 
   Future<String?> sendTrx({

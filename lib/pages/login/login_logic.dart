@@ -77,8 +77,9 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
   FocusNode? pwdFocus = FocusNode();
 
   late TabController tabController;
+  bool _inputResourcesDisposed = false;
 
-  _initData() async {
+  Future<void> _initData() async {
     var map = DataSp.getLoginAccount();
     if (map is Map) {
       String? phoneNumber = map["phoneNumber"];
@@ -102,17 +103,20 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
     phoneCtrl.removeListener(_onChanged);
     pwdCtrl.removeListener(_onChanged);
     verificationCodeCtrl.removeListener(_onChanged);
-    final tab = tabController;
-    final phone = phoneCtrl;
-    final pwd = pwdCtrl;
-    final code = verificationCodeCtrl;
-    Future.delayed(const Duration(milliseconds: 500), () {
-      phone.dispose();
-      pwd.dispose();
-      code.dispose();
-      tab.dispose();
-    });
     super.onClose();
+  }
+
+  void disposeInputResources() {
+    if (_inputResourcesDisposed) return;
+    _inputResourcesDisposed = true;
+    tabController.dispose();
+    phoneCtrl.dispose();
+    pwdCtrl.dispose();
+    verificationCodeCtrl.dispose();
+    accountFocus?.dispose();
+    pwdFocus?.dispose();
+    accountFocus = null;
+    pwdFocus = null;
   }
 
   @override
@@ -131,7 +135,7 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
     getPackageInfo();
   }
 
-  _onChanged() {
+  void _onChanged() {
     if (loginType.value == LoginType.account) {
       enabled.value = phoneCtrl.text.trim().isNotEmpty && pwdCtrl.text.trim().isNotEmpty;
     } else {
@@ -140,7 +144,7 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
     }
   }
 
-  login() {
+  void login() {
     DataSp.putLoginType(loginType.value.rawValue);
     LoadingView.singleton.wrap(asyncFunction: () async {
       var suc = await _login();

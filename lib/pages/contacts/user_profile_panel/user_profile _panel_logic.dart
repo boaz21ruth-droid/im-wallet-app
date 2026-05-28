@@ -142,55 +142,58 @@ class UserProfilePanelLogic extends GetxController {
 
     if (userID == OpenIM.iMManager.userID) {
       final user = await OpenIM.iMManager.userManager.getSelfUserInfo();
-
       userInfo.update((val) {
         val?.nickname = user.nickname;
         val?.faceURL = user.faceURL;
       });
-
       UserCacheManager().addOrUpdateUserInfo(userID, userInfo.value);
-
       return;
     }
 
-    final friendInfo = (await OpenIM.iMManager.friendshipManager.getFriendsInfo(
-      userIDList: [userID],
-    ))
-        .firstOrNull;
+    // Fetch friendship / blacklist status from OpenIM SDK.
+    // Wrapped in try/catch so any SDK error doesn't prevent the backend
+    // profile fetch below (which sets allowAddFriend).
+    FriendInfo? friendInfo;
+    bool isFriendship = false;
+    bool isBlack = false;
+    try {
+      friendInfo = (await OpenIM.iMManager.friendshipManager.getFriendsInfo(
+        userIDList: [userID],
+      )).firstOrNull;
 
-    final blackList = await OpenIM.iMManager.friendshipManager.getBlacklist();
+      final blackList = await OpenIM.iMManager.friendshipManager.getBlacklist();
+      isFriendship = friendInfo != null;
+      isBlack = blackList.firstWhereOrNull((e) => e.userID == friendInfo?.userID) != null;
 
-    final isFriendship = friendInfo != null;
-    final isBlack = blackList.firstWhereOrNull((e) => e.userID == friendInfo?.userID) != null;
-
-    if (friendInfo == null) {
-      final user = (await OpenIM.iMManager.userManager.getUsersInfoWithCache(
-        [userID],
-      ))
-          .firstOrNull;
-      if (user != null) {
+      if (friendInfo == null) {
+        final user = (await OpenIM.iMManager.userManager.getUsersInfoWithCache(
+          [userID],
+        )).firstOrNull;
+        if (user != null) {
+          userInfo.update((val) {
+            val?.nickname = user.nickname;
+            val?.faceURL = user.faceURL;
+            val?.remark = friendInfo?.remark;
+            val?.isBlacklist = isBlack;
+            val?.isFriendship = isFriendship;
+          });
+        }
+      } else {
+        final fi = friendInfo;
         userInfo.update((val) {
-          val?.nickname = user.nickname;
-          val?.faceURL = user.faceURL;
-          val?.remark = friendInfo?.remark;
+          val?.nickname = fi.nickname;
+          val?.faceURL = fi.faceURL;
+          val?.remark = fi.remark;
           val?.isBlacklist = isBlack;
           val?.isFriendship = isFriendship;
         });
       }
-    } else {
-      userInfo.update((val) {
-        val?.nickname = friendInfo.nickname;
-        val?.faceURL = friendInfo.faceURL;
-        val?.remark = friendInfo.remark;
-        val?.isBlacklist = isBlack;
-        val?.isFriendship = isFriendship;
-      });
-    }
-    UserCacheManager().addOrUpdateUserInfo(userID, userInfo.value);
+      UserCacheManager().addOrUpdateUserInfo(userID, userInfo.value);
+    } catch (_) {}
 
+    // Always fetch full profile from our backend — this sets allowAddFriend.
     final list2 = await Apis.getUserFullInfo(userIDList: [userID]);
     final fullInfo = list2?.firstOrNull;
-
     if (null != fullInfo) {
       userInfo.update((val) {
         val?.allowAddFriend = fullInfo.allowAddFriend;
@@ -208,7 +211,6 @@ class UserProfilePanelLogic extends GetxController {
         val?.isBlacklist = isBlack;
         val?.isFriendship = isFriendship;
       });
-
       UserCacheManager().addOrUpdateUserInfo(userID, userInfo.value);
     }
   }

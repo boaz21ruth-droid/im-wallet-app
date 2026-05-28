@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
 import '../../services/wallet/market_service.dart';
 import '../../services/wallet/wallet_models.dart';
+import 'backup/mnemonic_reveal_view.dart';
 import 'lock/wallet_lock_view.dart';
 import 'main/wallet_main_view.dart';
 import 'onboarding/wallet_onboard_view.dart';
@@ -18,7 +20,8 @@ class WalletPage extends StatefulWidget {
   State<WalletPage> createState() => _WalletPageState();
 }
 
-class _WalletPageState extends State<WalletPage> with SingleTickerProviderStateMixin {
+class _WalletPageState extends State<WalletPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final logic = Get.find<WalletLogic>();
 
@@ -57,6 +60,14 @@ class _WalletPageState extends State<WalletPage> with SingleTickerProviderStateM
     });
   }
 
+  void _showSettings(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _WalletSettingsSheet(logic: logic),
+    );
+  }
+
   Widget _buildUnlockedScaffold() {
     return Scaffold(
       backgroundColor: Styles.c_F8F9FA,
@@ -73,10 +84,16 @@ class _WalletPageState extends State<WalletPage> with SingleTickerProviderStateM
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.qr_code_scanner, color: Styles.c_0C1C33, size: 22.w),
+            icon:
+                Icon(Icons.qr_code_scanner, color: Styles.c_0C1C33, size: 22.w),
             onPressed: () {
               // QR scan for receiving
             },
+          ),
+          IconButton(
+            icon: Icon(Icons.settings_outlined,
+                color: Styles.c_0C1C33, size: 22.w),
+            onPressed: () => _showSettings(context),
           ),
         ],
         bottom: PreferredSize(
@@ -198,17 +215,23 @@ class _WalletNewsTab extends StatelessWidget {
 
   Widget _buildFilter() {
     return Obx(() => Padding(
-      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
-      child: Row(
-        children: [
-          _FilterChip(label: '广场', index: 0, selectedIndex: logic.newsFilter.value,
-              onTap: () => logic.newsFilter.value = 0),
-          SizedBox(width: 8.w),
-          _FilterChip(label: '公告', index: 1, selectedIndex: logic.newsFilter.value,
-              onTap: () => logic.newsFilter.value = 1),
-        ],
-      ),
-    ));
+          padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+          child: Row(
+            children: [
+              _FilterChip(
+                  label: '广场',
+                  index: 0,
+                  selectedIndex: logic.newsFilter.value,
+                  onTap: () => logic.newsFilter.value = 0),
+              SizedBox(width: 8.w),
+              _FilterChip(
+                  label: '公告',
+                  index: 1,
+                  selectedIndex: logic.newsFilter.value,
+                  onTap: () => logic.newsFilter.value = 1),
+            ],
+          ),
+        ));
   }
 
   Widget _buildArticleCard(_NewsItem item) {
@@ -221,10 +244,11 @@ class _WalletNewsTab extends StatelessWidget {
             width: 44.w,
             height: 44.w,
             decoration: BoxDecoration(
-              color: Styles.c_0089FF.withOpacity(0.1),
+              color: Styles.c_0089FF.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10.r),
             ),
-            child: Icon(Icons.article_outlined, color: Styles.c_0089FF, size: 22.w),
+            child: Icon(Icons.article_outlined,
+                color: Styles.c_0089FF, size: 22.w),
           ),
           SizedBox(width: 12.w),
           Expanded(
@@ -252,10 +276,12 @@ class _WalletNewsTab extends StatelessWidget {
                 Row(
                   children: [
                     Text(item.source,
-                        style: TextStyle(fontSize: 11.sp, color: Styles.c_0089FF)),
+                        style:
+                            TextStyle(fontSize: 11.sp, color: Styles.c_0089FF)),
                     const Spacer(),
                     Text(item.time,
-                        style: TextStyle(fontSize: 11.sp, color: Styles.c_8E9AB0)),
+                        style:
+                            TextStyle(fontSize: 11.sp, color: Styles.c_8E9AB0)),
                   ],
                 ),
               ],
@@ -346,7 +372,8 @@ class _WalletMarketTab extends StatelessWidget {
             children: [
               Icon(Icons.show_chart, size: 48.w, color: Styles.c_8E9AB0),
               SizedBox(height: 12.h),
-              Text('暂无行情数据', style: TextStyle(color: Styles.c_8E9AB0, fontSize: 14.sp)),
+              Text('暂无行情数据',
+                  style: TextStyle(color: Styles.c_8E9AB0, fontSize: 14.sp)),
               SizedBox(height: 16.h),
               TextButton(
                 onPressed: logic.refreshMarketList,
@@ -377,7 +404,7 @@ class _WalletMarketTab extends StatelessWidget {
             width: 40.w,
             height: 40.w,
             decoration: BoxDecoration(
-              color: Styles.c_0089FF.withOpacity(0.1),
+              color: Styles.c_0089FF.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: Center(
@@ -426,8 +453,8 @@ class _WalletMarketTab extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
                 decoration: BoxDecoration(
                   color: isPositive
-                      ? Colors.green.withOpacity(0.12)
-                      : Colors.red.withOpacity(0.12),
+                      ? Colors.green.withValues(alpha: 0.12)
+                      : Colors.red.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(4.r),
                 ),
                 child: Text(
@@ -471,7 +498,10 @@ class _ComingSoonTab extends StatelessWidget {
           SizedBox(height: 16.h),
           Text(
             label,
-            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w600, color: Styles.c_0C1C33),
+            style: TextStyle(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w600,
+                color: Styles.c_0C1C33),
           ),
           SizedBox(height: 8.h),
           Text(
@@ -481,5 +511,227 @@ class _ComingSoonTab extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+// ── Wallet Settings Sheet ─────────────────────────────────────────────────────
+
+class _WalletSettingsSheet extends StatelessWidget {
+  final WalletLogic logic;
+  const _WalletSettingsSheet({required this.logic});
+
+  static const _lockOptions = [
+    (label: '1 分钟', seconds: 60),
+    (label: '5 分钟', seconds: 300),
+    (label: '15 分钟', seconds: 900),
+    (label: '1 小时', seconds: 3600),
+    (label: '永不锁定', seconds: 0),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.82;
+    return SafeArea(
+      top: false,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Styles.c_FFFFFF,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+          ),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 16.h),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: Styles.c_E8EAEF,
+                      borderRadius: BorderRadius.circular(2.r),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20.h),
+                Text(
+                  '钱包设置',
+                  style: TextStyle(
+                      fontSize: 17.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Styles.c_0C1C33),
+                ),
+                SizedBox(height: 20.h),
+                Text(
+                  '自动锁定时间',
+                  style: TextStyle(
+                      fontSize: 13.sp,
+                      color: Styles.c_8E9AB0,
+                      fontWeight: FontWeight.w500),
+                ),
+                SizedBox(height: 10.h),
+                Obx(() {
+                  final current = logic.settings.value.autoLockSeconds;
+                  return Column(
+                    children: _lockOptions.map((opt) {
+                      final isSelected = current == opt.seconds;
+                      return GestureDetector(
+                        onTap: () {
+                          logic.setAutoLockSeconds(opt.seconds);
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          margin: EdgeInsets.only(bottom: 8.h),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 16.w, vertical: 14.h),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Styles.c_0089FF.withAlpha(20)
+                                : Styles.c_F8F9FA,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(
+                              color: isSelected
+                                  ? Styles.c_0089FF
+                                  : Colors.transparent,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Text(
+                                opt.label,
+                                style: TextStyle(
+                                  fontSize: 15.sp,
+                                  color: isSelected
+                                      ? Styles.c_0089FF
+                                      : Styles.c_0C1C33,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.normal,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (isSelected)
+                                Icon(Icons.check_circle,
+                                    color: Styles.c_0089FF, size: 20.w),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                }),
+                SizedBox(height: 12.h),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context); // close sheet
+                    Get.to(() => const MnemonicRevealPage());
+                  },
+                  child: Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEFF8FF),
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(color: const Color(0xFFBAE2FF)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.shield_outlined,
+                            color: Color(0xFF005BB3), size: 20),
+                        SizedBox(width: 10.w),
+                        Text(
+                          '备份助记词',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            color: const Color(0xFF005BB3),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const Spacer(),
+                        Icon(Icons.chevron_right,
+                            color: const Color(0xFF005BB3).withOpacity(0.6),
+                            size: 20.w),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10.h),
+                GestureDetector(
+                  onTap: () => _confirmDeleteLocalWallet(context),
+                  child: Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF1F2),
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(color: const Color(0xFFFFCDD2)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.delete_outline,
+                            color: Color(0xFFB42318), size: 20),
+                        SizedBox(width: 10.w),
+                        Text(
+                          '删除本机钱包',
+                          style: TextStyle(
+                            fontSize: 15.sp,
+                            color: const Color(0xFFB42318),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteLocalWallet(BuildContext context) async {
+    // Use the dialog's own context for pop, not the outer sheet context —
+    // the outer context's pop pops the topmost (the dialog) but the intent
+    // is clearer and less brittle this way.
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: const Text('删除本机钱包？'),
+        content: const Text('只会清除当前设备保存的助记词和钱包数据，不会删除账号或链上资产。删除前请确认已备份助记词。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: const Text('删除',
+                style: TextStyle(color: Color(0xFFB42318))),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    if (!context.mounted) return;
+
+    // Close the bottom sheet first so the success/onboarding view is visible.
+    Navigator.pop(context);
+
+    EasyLoading.show(status: '正在删除...');
+    try {
+      await logic.deleteLocalWallet();
+      EasyLoading.dismiss();
+      IMViews.showToast('已删除本机钱包');
+    } catch (e, st) {
+      EasyLoading.dismiss();
+      debugPrint('deleteLocalWallet failed: $e\n$st');
+      EasyLoading.showError('删除失败：$e');
+    }
   }
 }

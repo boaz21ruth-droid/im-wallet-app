@@ -203,6 +203,125 @@ class EvmService {
     }
   }
 
+  // Raw JSON-RPC helper — uses config.rpcs with same retry strategy as _rpc()
+  Future<dynamic> _jsonRpc(String method, List<dynamic> params) async {
+    Object? lastError;
+    for (var offset = 0; offset < config.rpcs.length; offset++) {
+      final idx = (_preferred + offset) % config.rpcs.length;
+      try {
+        final resp = await http.post(
+          Uri.parse(config.rpcs[idx]),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'jsonrpc': '2.0', 'method': method, 'params': params, 'id': 1}),
+        );
+        final body = jsonDecode(resp.body) as Map<String, dynamic>;
+        if (body.containsKey('error')) throw Exception(body['error']);
+        _preferred = idx;
+        return body['result'];
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    throw lastError!;
+  }
+
+  // Uses eth_getLogs — no Explorer API key required.
+  Future<List<TxRecord>> getErc20TransferHistory(
+    String address,
+    String contractAddress, {
+    int limit = 20,
+  }) async {
+    // keccak256("Transfer(address,address,uint256)")
+    const transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+    final addrPadded = '0x000000000000000000000000${address.replaceFirst('0x', '').toLowerCase()}';
+
+    try {
+      final blockHex = await _jsonRpc('eth_blockNumber', []) as String;
+      final current = int.parse(blockHex.replaceFirst('0x', ''), radix: 16);
+
+      // Scan backwards in 2000-block chunks (safe for all public RPCs).
+      // Stop once we have enough results or cover ~50k blocks.
+      const chunkSize = 2000;
+      const maxChunks = 25;
+      final seen = <String>{};
+      final all = <Map<String, dynamic>>[];
+
+      for (var i = 0; i < maxChunks && all.length < limit; i++) {
+        final toBlock = current - i * chunkSize;
+        if (toBlock < 0) break;
+        final fromBlock = (toBlock - chunkSize + 1).clamp(0, toBlock);
+        final fromHex = '0x${fromBlock.toRadixString(16)}';
+        final toHex = '0x${toBlock.toRadixString(16)}';
+        try {
+          final results = await Future.wait([
+            _jsonRpc('eth_getLogs', [{'address': contractAddress, 'topics': [transferTopic, addrPadded], 'fromBlock': fromHex, 'toBlock': toHex}]),
+            _jsonRpc('eth_getLogs', [{'address': contractAddress, 'topics': [transferTopic, null, addrPadded], 'fromBlock': fromHex, 'toBlock': toHex}]),
+          ]);
+          for (final log in [
+            ...(results[0] as List? ?? []).cast<Map<String, dynamic>>(),
+            ...(results[1] as List? ?? []).cast<Map<String, dynamic>>(),
+          ]) {
+            if (seen.add(log['transactionHash'] as String? ?? '')) all.add(log);
+          }
+        } catch (_) {
+          continue;
+        }
+      }
+
+      all.sort((a, b) {
+        final ba = int.tryParse(((a['blockNumber'] as String?) ?? '0x0').replaceFirst('0x', ''), radix: 16) ?? 0;
+        final bb = int.tryParse(((b['blockNumber'] as String?) ?? '0x0').replaceFirst('0x', ''), radix: 16) ?? 0;
+        return bb.compareTo(ba);
+      });
+      final trimmed = all.take(limit).toList();
+
+      // Fetch timestamps by unique block number
+      final blockHexes = trimmed.map((e) => e['blockNumber'] as String?).whereType<String>().toSet();
+      final timestamps = <String, int>{};
+      await Future.wait(blockHexes.map((hex) async {
+        try {
+          final block = await _jsonRpc('eth_getBlockByNumber', [hex, false]) as Map<String, dynamic>?;
+          final ts = block?['timestamp'] as String?;
+          if (ts != null) timestamps[hex] = int.parse(ts.replaceFirst('0x', ''), radix: 16);
+        } catch (_) {}
+      }));
+
+      BuiltinToken? tokenInfo;
+      for (final t in config.builtinTokens) {
+        if (t.contractAddress.toLowerCase() == contractAddress.toLowerCase()) {
+          tokenInfo = t;
+          break;
+        }
+      }
+      final tokenDecimals = tokenInfo?.decimals ?? 18;
+
+      return trimmed.map((log) {
+        final topics = (log['topics'] as List? ?? []).cast<String>();
+        final from = topics.length > 1 ? '0x${topics[1].replaceFirst('0x', '').substring(24)}' : '';
+        final to   = topics.length > 2 ? '0x${topics[2].replaceFirst('0x', '').substring(24)}' : '';
+        final data = log['data'] as String? ?? '0x';
+        final value = data.length > 2
+            ? BigInt.tryParse(data.replaceFirst('0x', ''), radix: 16) ?? BigInt.zero
+            : BigInt.zero;
+        final blockHex = log['blockNumber'] as String? ?? '0x0';
+        final ts = timestamps[blockHex] ?? 0;
+        return TxRecord(
+          hash: log['transactionHash'] as String? ?? '',
+          from: from,
+          to: to,
+          value: value,
+          decimals: tokenDecimals,
+          timestamp: DateTime.fromMillisecondsSinceEpoch(ts * 1000),
+          status: 'confirmed',
+          chainKey: chainKey,
+          tokenContract: contractAddress,
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
   void dispose() {
     for (final c in _clients) {
       c.dispose();

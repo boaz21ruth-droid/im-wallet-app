@@ -9,6 +9,7 @@ import '../../../services/wallet/wallet_models.dart';
 import '../wallet_logic.dart';
 import '../receive/wallet_receive_view.dart';
 import '../send/wallet_send_view.dart';
+import '../token_detail/wallet_token_detail_view.dart';
 
 class WalletMainView extends StatelessWidget {
   const WalletMainView({super.key});
@@ -267,7 +268,10 @@ class WalletMainView extends StatelessWidget {
             children: items.asMap().entries.map((entry) {
               final i = entry.key;
               final b = entry.value;
-              return _buildBalanceRow(b, isLast: i == items.length - 1);
+              return GestureDetector(
+                onTap: () => Get.to(() => WalletTokenDetailView(asset: b)),
+                child: _buildBalanceRow(b, isLast: i == items.length - 1),
+              );
             }).toList(),
           ),
         ),

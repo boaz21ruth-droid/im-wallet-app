@@ -134,7 +134,9 @@ class AddContactsBySearchLogic extends GetxController {
     }
 
     UserFullInfo userFullInfo = info;
-    if (int.tryParse(searchKey) != null) {
+    if (searchKey.contains('@')) {
+      return sprintf(StrRes.searchEmailIs, [userFullInfo.email ?? searchKey]);
+    } else if (int.tryParse(searchKey) != null) {
       if (searchKey.length == 11) {
         return sprintf(StrRes.searchPhoneIs, [userFullInfo.phoneNumber ?? searchKey]);
       } else {

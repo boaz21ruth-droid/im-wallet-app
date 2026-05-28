@@ -64,11 +64,21 @@ class Config {
   static const friendScheme = "io.openim.app/addFriend/";
   static const groupScheme = "io.openim.app/joinGroup/";
 
-  static const _host = String.fromEnvironment('HOST_IP', defaultValue: '192.168.110.105'); // set via --dart-define-from-file=../../env.json
+  // Updated by setup.sh — run it whenever your LAN IP changes
+  static const _host = '192.168.110.105';
+
+  // true = route through Caddy on port 80 (path-based); false = direct service ports
+  static const _useCaddy = true;
 
   static const _ipRegex = '((2[0-4]\\d|25[0-5]|[01]?\\d\\d?)\\.){3}(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)';
 
   static bool get _isIP => RegExp(_ipRegex).hasMatch(_host);
+
+  // Direct-port mode: IP address and Caddy not enabled
+  static bool get _directPort => _isIP && !_useCaddy;
+
+  static String get _scheme => _isIP ? 'http' : 'https';
+  static String get _wsScheme => _isIP ? 'ws' : 'wss';
 
   static String get serverIp {
     String? ip;
@@ -85,7 +95,7 @@ class Config {
     if (null != server) {
       url = server['chatTokenUrl'];
     }
-    return url ?? (_isIP ? "http://$_host:10009" : "https://$_host/chat");
+    return url ?? (_directPort ? "http://$_host:10008" : "$_scheme://$_host/chat");
   }
 
   static String get appAuthUrl {
@@ -94,7 +104,7 @@ class Config {
     if (null != server) {
       url = server['authUrl'];
     }
-    return url ?? (_isIP ? "http://$_host:10008" : "https://$_host/chat");
+    return url ?? (_directPort ? "http://$_host:10008" : "$_scheme://$_host/chat");
   }
 
   static String get imApiUrl {
@@ -103,7 +113,7 @@ class Config {
     if (null != server) {
       url = server['apiUrl'];
     }
-    return url ?? (_isIP ? 'http://$_host:10002' : "https://$_host/api");
+    return url ?? (_directPort ? 'http://$_host:10002' : "$_scheme://$_host/api");
   }
 
   static String get imWsUrl {
@@ -112,7 +122,7 @@ class Config {
     if (null != server) {
       url = server['wsUrl'];
     }
-    return url ?? (_isIP ? "ws://$_host:10001" : "wss://$_host/msg_gateway");
+    return url ?? (_directPort ? "ws://$_host:10001" : "$_wsScheme://$_host/msg_gateway");
   }
 
   static int get logLevel {

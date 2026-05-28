@@ -2,6 +2,7 @@ class ChainConfig {
   final int chainId;
   final List<String> rpcs; // ordered by priority; fallback in sequence
   final String explorer;
+  final String txExplorerBase; // base URL for tx explorer, e.g. "https://etherscan.io/tx/"
   final String symbol;
   final String name;
   final int decimals;
@@ -13,6 +14,7 @@ class ChainConfig {
     required this.chainId,
     required this.rpcs,
     required this.explorer,
+    required this.txExplorerBase,
     required this.symbol,
     required this.name,
     this.decimals = 18,
@@ -46,6 +48,7 @@ const chains = <String, ChainConfig>{
       'https://ethereum.publicnode.com',    // ~50 req/s
     ],
     explorer: 'https://api.etherscan.io/api',
+    txExplorerBase: 'https://etherscan.io/tx/',
     symbol: 'ETH',
     name: 'Ethereum',
     decimals: 18,
@@ -73,6 +76,7 @@ const chains = <String, ChainConfig>{
       'https://bsc.publicnode.com',
     ],
     explorer: 'https://api.bscscan.com/api',
+    txExplorerBase: 'https://bscscan.com/tx/',
     symbol: 'BNB',
     name: 'BNB Chain',
     decimals: 18,
@@ -100,6 +104,7 @@ const chains = <String, ChainConfig>{
       'https://polygon.publicnode.com',
     ],
     explorer: 'https://api.polygonscan.com/api',
+    txExplorerBase: 'https://polygonscan.com/tx/',
     symbol: 'POL',
     name: 'Polygon',
     decimals: 18,
@@ -127,6 +132,7 @@ const chains = <String, ChainConfig>{
       'https://1rpc.io/arb',
     ],
     explorer: 'https://api.arbiscan.io/api',
+    txExplorerBase: 'https://arbiscan.io/tx/',
     symbol: 'ETH',
     name: 'Arbitrum One',
     decimals: 18,
@@ -154,6 +160,7 @@ const chains = <String, ChainConfig>{
       'https://1rpc.io/op',
     ],
     explorer: 'https://api-optimistic.etherscan.io/api',
+    txExplorerBase: 'https://optimistic.etherscan.io/tx/',
     symbol: 'ETH',
     name: 'Optimism',
     decimals: 18,
@@ -179,6 +186,7 @@ const chains = <String, ChainConfig>{
       'https://api.tronstack.io',           // community fallback
     ],
     explorer: 'https://apilist.tronscanapi.com/api',
+    txExplorerBase: 'https://tronscan.org/#/transaction/',
     symbol: 'TRX',
     name: 'TRON',
     decimals: 6,
@@ -195,11 +203,13 @@ const chains = <String, ChainConfig>{
   'bsc_testnet': ChainConfig(
     chainId: 97,
     rpcs: [
+      'https://rpc.ankr.com/bsc_testnet_chapel', // supports eth_getLogs up to 10k blocks
       'https://data-seed-prebsc-1-s1.binance.org:8545',
       'https://data-seed-prebsc-2-s1.binance.org:8545',
       'https://bsc-testnet.publicnode.com',
     ],
     explorer: 'https://api-testnet.bscscan.com/api',
+    txExplorerBase: 'https://testnet.bscscan.com/tx/',
     symbol: 'tBNB',
     name: 'BSC Testnet',
     decimals: 18,
@@ -220,6 +230,7 @@ const chains = <String, ChainConfig>{
       'https://rpc.ankr.com/eth_sepolia',
     ],
     explorer: 'https://api-sepolia.etherscan.io/api',
+    txExplorerBase: 'https://sepolia.etherscan.io/tx/',
     symbol: 'ETH',
     name: 'Sepolia',
     decimals: 18,
@@ -229,6 +240,7 @@ const chains = <String, ChainConfig>{
     chainId: 0,
     rpcs: ['https://api.shasta.trongrid.io'],
     explorer: 'https://shasta.tronscanapi.com/api',
+    txExplorerBase: 'https://shasta.tronscan.org/#/transaction/',
     symbol: 'TRX',
     name: 'Shasta Testnet',
     decimals: 6,

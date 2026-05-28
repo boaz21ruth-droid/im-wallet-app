@@ -32,7 +32,7 @@ class SendVerificationApplicationLogic extends GetxController {
     }
   }
 
-  _applyAddFriend() async {
+  Future<void> _applyAddFriend() async {
     try {
       await LoadingView.singleton.wrap(
         asyncFunction: () => OpenIM.iMManager.friendshipManager.addFriend(
@@ -42,9 +42,9 @@ class SendVerificationApplicationLogic extends GetxController {
       );
       Get.back();
       IMViews.showToast(StrRes.sendSuccessfully);
-    } catch (_) {
-      if (_ is PlatformException) {
-        if (_.code == '${SDKErrorCode.refuseToAddFriends}') {
+    } catch (e) {
+      if (e is PlatformException) {
+        if (e.code == '${SDKErrorCode.refuseToAddFriends}') {
           IMViews.showToast(StrRes.canNotAddFriends);
           return;
         }
@@ -53,7 +53,7 @@ class SendVerificationApplicationLogic extends GetxController {
     }
   }
 
-  _applyEnterGroup() {
+  void _applyEnterGroup() {
     LoadingView.singleton
         .wrap(
           asyncFunction: () => OpenIM.iMManager.groupManager.joinGroup(

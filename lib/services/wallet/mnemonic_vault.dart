@@ -6,8 +6,12 @@ import 'package:pointycastle/export.dart';
 import 'vault_crypto.dart';
 
 class MnemonicVault {
-  static const _kMnemonic = 'wv_mnemonic';
-  static const _kBiometricKey = 'wv_biometric_key';
+  final String _uid;
+
+  MnemonicVault(String userID) : _uid = userID;
+
+  String get _kMnemonic     => 'wv_mnemonic_$_uid';
+  String get _kBiometricKey => 'wv_biometric_key_$_uid';
 
   static const _storage = FlutterSecureStorage(
     aOptions: AndroidOptions(encryptedSharedPreferences: true),

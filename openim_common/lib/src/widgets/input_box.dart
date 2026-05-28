@@ -189,6 +189,12 @@ class _InputBoxState extends State<InputBox> {
     super.initState();
   }
 
+  @override
+  void dispose() {
+    widget.controller?.removeListener(_onChanged);
+    super.dispose();
+  }
+
   void _onChanged() {
     setState(() {
       _showClearBtn = widget.controller!.text.isNotEmpty;

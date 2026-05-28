@@ -561,7 +561,7 @@ const Map<String, String> en_US = {
   'switchToDomain': 'Switch to Domain',
   'serverSettingTips': 'After modifying the configuration, you need to save and restart for the changes to take effect',
   'callFail': 'You cannot call this user',
-  'search_by_phone_and_uid': 'search by phone and uid',
+  'search_by_phone_and_uid': 'Search by email / phone / ID',
   'special_message': 'special message',
   'edit_group_name': 'Modify group chat name',
   'edit_group_tips': 'After modifying the group chat name, other members will be notified in the group.',

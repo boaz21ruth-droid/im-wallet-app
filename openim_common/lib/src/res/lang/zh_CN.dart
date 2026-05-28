@@ -559,7 +559,7 @@ const Map<String, String> zh_CN = {
   'switchToDomain': '切换到域名',
   'serverSettingTips': '修改配置后，保存并重启才能生效',
   'callFail': '你无法呼叫该用户',
-  'search_by_phone_and_uid': '通过手机号/ID号/搜索添加',
+  'search_by_phone_and_uid': '通过邮箱/手机号/ID号搜索添加',
   'special_message': '特殊消息',
   'edit_group_name': '修改群聊名称',
   'edit_group_tips': '修改群聊名称后，将在群内通知其他成员。',
