@@ -1,6 +1,5 @@
 // lib/services/wallet/swap/zerox_provider.dart
 import 'package:dio/dio.dart';
-import '../chain_config.dart';
 import 'swap_config.dart';
 import 'swap_models.dart';
 import 'swap_provider.dart';
@@ -166,8 +165,8 @@ class ZeroExProvider implements SwapProvider {
     if (status == 422) return const SwapException(SwapErrorKind.noLiquidity, 'no liquidity');
     if (status >= 400 && status < 500) {
       return SwapException(
-          SwapErrorKind.invalidParams, '0x ${status}: ${e.response?.data}');
+          SwapErrorKind.invalidParams, '0x $status: ${e.response?.data}');
     }
-    return SwapException(SwapErrorKind.unknown, '0x ${status}: ${e.response?.data}');
+    return SwapException(SwapErrorKind.unknown, '0x $status: ${e.response?.data}');
   }
 }
