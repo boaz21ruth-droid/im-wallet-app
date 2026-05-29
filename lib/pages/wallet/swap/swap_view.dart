@@ -9,12 +9,46 @@ import '../../../services/wallet/chain_config.dart';
 import '../../../services/wallet/swap/swap_config.dart';
 import '../../../services/wallet/swap/swap_models.dart';
 import '../../../services/wallet/wallet_models.dart';
+import 'slippage_sheet.dart';
 import 'swap_logic.dart';
 import 'swap_result_view.dart';
 import 'token_picker_sheet.dart';
 
 class SwapView extends StatelessWidget {
   const SwapView({super.key});
+
+  void _showChainPicker(BuildContext context, SwapLogic logic) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Styles.c_FFFFFF,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 12.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: kZeroxSupportedChains.map((k) {
+              final cfg = chains[k];
+              if (cfg == null) return const SizedBox.shrink();
+              return ListTile(
+                title: Text(cfg.name, style: TextStyle(fontSize: 15.sp)),
+                trailing: logic.swapChainKey.value == k
+                    ? Icon(Icons.check_circle,
+                        color: Styles.c_0089FF, size: 20.w)
+                    : null,
+                onTap: () {
+                  logic.switchChain(k);
+                  Get.back();
+                },
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +71,7 @@ class SwapView extends StatelessWidget {
           IconButton(
             icon: Icon(Icons.settings_outlined,
                 color: Styles.c_0C1C33, size: 22.w),
-            onPressed: () {},
+            onPressed: () => showSlippageSheet(context),
           ),
         ],
       ),
@@ -58,7 +92,7 @@ class SwapView extends StatelessWidget {
                     style: TextStyle(
                         color: Colors.red[700], fontSize: 13.sp)),
               ),
-            _buildChainChip(logic),
+            _buildChainChip(context, logic),
             SizedBox(height: 16.h),
             _SellCard(logic: logic),
             SizedBox(height: 12.h),
@@ -75,14 +109,12 @@ class SwapView extends StatelessWidget {
     );
   }
 
-  Widget _buildChainChip(SwapLogic logic) {
+  Widget _buildChainChip(BuildContext context, SwapLogic logic) {
     return Obx(() {
       final key = logic.swapChainKey.value;
       final cfg = chains[key];
       return GestureDetector(
-        onTap: () {
-          // Chain picker bottom sheet — added in Task 5; static for now.
-        },
+        onTap: () => _showChainPicker(context, logic),
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 8.h),
           decoration: BoxDecoration(
@@ -388,7 +420,7 @@ class _QuoteSummary extends StatelessWidget {
       final feeAmt = r.fees.integratorFeeAmount;
       return Column(
         children: [
-          _row('报价方', '0x'),
+          _providerRow(),
           _row('汇率', rate),
           _row('滑点', '${(logic.slippageBps.value / 100).toStringAsFixed(2)}%'),
           if (feeAmt != null)
@@ -409,6 +441,43 @@ class _QuoteSummary extends StatelessWidget {
           const Spacer(),
           Text(value,
               style: TextStyle(fontSize: 13.sp, color: Styles.c_0C1C33)),
+        ],
+      ),
+    );
+  }
+
+  Widget _providerRow() {
+    final logic = Get.find<SwapLogic>();
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4.h),
+      child: Row(
+        children: [
+          Text('报价方',
+              style: TextStyle(fontSize: 13.sp, color: Styles.c_8E9AB0)),
+          const Spacer(),
+          DropdownButton<String>(
+            value: logic.providerId.value,
+            isDense: true,
+            underline: const SizedBox.shrink(),
+            items: const [
+              DropdownMenuItem(value: 'zerox', child: Text('0x')),
+              DropdownMenuItem(
+                  value: 'oneinch_disabled',
+                  enabled: false,
+                  child: Text('1inch（即将开放）')),
+              DropdownMenuItem(
+                  value: 'okx_disabled',
+                  enabled: false,
+                  child: Text('OKX DEX（即将开放）')),
+              DropdownMenuItem(
+                  value: 'uniswap_disabled',
+                  enabled: false,
+                  child: Text('Uniswap（即将开放）')),
+            ],
+            onChanged: (v) {
+              if (v == 'zerox') logic.providerId.value = v!;
+            },
+          ),
         ],
       ),
     );
