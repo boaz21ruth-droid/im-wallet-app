@@ -322,6 +322,127 @@ class EvmService {
     }
   }
 
+  // ── Swap helpers ──────────────────────────────────────────────────────────
+
+  /// ERC20 `decimals()` selector: 0x313ce567.
+  Future<int> getDecimals(String contractAddress) async {
+    final contract = DeployedContract(
+      ContractAbi.fromJson(
+          '[{"constant":true,"inputs":[],"name":"decimals","outputs":[{"name":"","type":"uint8"}],"type":"function"}]',
+          'ERC20Decimals'),
+      EthereumAddress.fromHex(contractAddress),
+    );
+    final fn = contract.function('decimals');
+    final result = await _rpc(
+      (c) => c.call(contract: contract, function: fn, params: []),
+    );
+    return (result.first as BigInt).toInt();
+  }
+
+  Future<BigInt> getAllowance({
+    required String owner,
+    required String spender,
+    required String tokenContract,
+  }) async {
+    final contract = DeployedContract(
+      ContractAbi.fromJson(
+          '[{"constant":true,"inputs":[{"name":"o","type":"address"},{"name":"s","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"type":"function"}]',
+          'ERC20Allowance'),
+      EthereumAddress.fromHex(tokenContract),
+    );
+    final fn = contract.function('allowance');
+    final result = await _rpc(
+      (c) => c.call(
+        contract: contract,
+        function: fn,
+        params: [
+          EthereumAddress.fromHex(owner),
+          EthereumAddress.fromHex(spender),
+        ],
+      ),
+    );
+    return result.first as BigInt;
+  }
+
+  /// Approves `spender` to spend `amount` of `tokenContract`. Returns tx hash.
+  /// For swap flows callers should pass MaxUint256.
+  Future<String> sendApprove({
+    required EthPrivateKey senderKey,
+    required String tokenContract,
+    required String spender,
+    required BigInt amount,
+  }) async {
+    final contract = DeployedContract(
+      ContractAbi.fromJson(
+          '[{"inputs":[{"name":"_s","type":"address"},{"name":"_v","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"type":"function"}]',
+          'ERC20Approve'),
+      EthereumAddress.fromHex(tokenContract),
+    );
+    final fn = contract.function('approve');
+    return _rpc((c) async {
+      final gasPrice = await c.getGasPrice();
+      final tx = Transaction.callContract(
+        contract: contract,
+        function: fn,
+        parameters: [EthereumAddress.fromHex(spender), amount],
+        gasPrice: gasPrice,
+        maxGas: 70000,
+      );
+      return c.sendTransaction(senderKey, tx, chainId: config.chainId);
+    });
+  }
+
+  /// Broadcasts an arbitrary calldata transaction (e.g. 0x swap calldata).
+  /// `dataHex` may or may not start with "0x".
+  Future<String> sendRaw({
+    required EthPrivateKey senderKey,
+    required String to,
+    required String dataHex,
+    required BigInt value,
+    BigInt? gasLimit,
+    BigInt? gasPrice,
+  }) async {
+    final hex = dataHex.startsWith('0x') ? dataHex.substring(2) : dataHex;
+    if (hex.length.isOdd || !RegExp(r'^[0-9a-fA-F]*$').hasMatch(hex)) {
+      throw ArgumentError('invalid hex calldata');
+    }
+    final bytes = Uint8List.fromList(
+      [for (var i = 0; i < hex.length; i += 2) int.parse(hex.substring(i, i + 2), radix: 16)],
+    );
+    return _rpc((c) async {
+      final BigInt gp;
+      if (gasPrice != null) {
+        gp = gasPrice;
+      } else {
+        final fetched = await c.getGasPrice();
+        gp = fetched.getInWei;
+      }
+      final tx = Transaction(
+        to: EthereumAddress.fromHex(to),
+        value: EtherAmount.fromBigInt(EtherUnit.wei, value),
+        data: bytes,
+        gasPrice: EtherAmount.fromBigInt(EtherUnit.wei, gp),
+        maxGas: gasLimit?.toInt() ?? 300000,
+      );
+      return c.sendTransaction(senderKey, tx, chainId: config.chainId);
+    });
+  }
+
+  /// Polls receipt until status is known or timeout. Returns true iff status==1.
+  Future<bool> waitForReceipt(String txHash, {Duration timeout = const Duration(seconds: 60)}) async {
+    final start = DateTime.now();
+    while (DateTime.now().difference(start) < timeout) {
+      try {
+        final receipt = await _rpc((c) => c.getTransactionReceipt(txHash));
+        if (receipt != null) {
+          return receipt.status == true;
+        }
+      } catch (_) {}
+      await Future.delayed(const Duration(seconds: 3));
+    }
+    return false;
+  }
+
   void dispose() {
     for (final c in _clients) {
       c.dispose();

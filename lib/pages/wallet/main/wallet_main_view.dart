@@ -9,6 +9,8 @@ import '../../../services/wallet/wallet_models.dart';
 import '../wallet_logic.dart';
 import '../receive/wallet_receive_view.dart';
 import '../send/wallet_send_view.dart';
+import '../swap/swap_binding.dart';
+import '../swap/swap_view.dart';
 import '../token_detail/wallet_token_detail_view.dart';
 
 class WalletMainView extends StatelessWidget {
@@ -152,7 +154,10 @@ class WalletMainView extends StatelessWidget {
             icon: Icons.swap_horiz,
             label: 'Swap',
             color: const Color(0xFFFF9F40),
-            onTap: () => EasyLoading.showToast('即将推出'),
+            onTap: () => Get.to(
+              () => const SwapView(),
+              binding: SwapBinding(),
+            ),
           ),
           _ActionBtn(
             icon: Icons.lock_outline,
