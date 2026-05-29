@@ -468,6 +468,9 @@ class _MainButton extends StatelessWidget {
       }
     }
     if (logic.priceResult.value == null) return '输入金额';
+    if (logic.needsApproval.value == true) {
+      return '授权 ${logic.sellToken.value!.symbol}';
+    }
     return 'Swap';
   }
 }
@@ -482,7 +485,6 @@ class _PasswordSheet extends StatefulWidget {
 
 class _PasswordSheetState extends State<_PasswordSheet> {
   final _pwdCtrl = TextEditingController();
-  bool _sending = false;
 
   @override
   void dispose() {
@@ -491,7 +493,6 @@ class _PasswordSheetState extends State<_PasswordSheet> {
   }
 
   Future<void> _submit() async {
-    setState(() => _sending = true);
     Get.back(); // close password sheet first
     EasyLoading.show(status: '提交中...');
     final result = await widget.logic.executeSwap(password: _pwdCtrl.text);
@@ -537,7 +538,7 @@ class _PasswordSheetState extends State<_PasswordSheet> {
             width: double.infinity,
             height: 50.h,
             child: ElevatedButton(
-              onPressed: _sending ? null : _submit,
+              onPressed: _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Styles.c_0089FF,
                 foregroundColor: Colors.white,

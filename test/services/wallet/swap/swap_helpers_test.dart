@@ -22,5 +22,11 @@ void main() {
       expect(parseHex(input).length, equals(32));
       expect(parseHex(input).every((b) => b == 0xff), isTrue);
     });
+    test('throws on odd-length hex', () {
+      expect(() => parseHex('0x123'), throwsA(isA<RangeError>()));
+    });
+    test('throws on non-hex chars', () {
+      expect(() => parseHex('0x12zz'), throwsA(isA<FormatException>()));
+    });
   });
 }

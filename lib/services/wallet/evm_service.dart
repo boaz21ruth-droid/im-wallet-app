@@ -403,6 +403,9 @@ class EvmService {
     BigInt? gasPrice,
   }) async {
     final hex = dataHex.startsWith('0x') ? dataHex.substring(2) : dataHex;
+    if (hex.length.isOdd || !RegExp(r'^[0-9a-fA-F]*$').hasMatch(hex)) {
+      throw ArgumentError('invalid hex calldata');
+    }
     final bytes = Uint8List.fromList(
       [for (var i = 0; i < hex.length; i += 2) int.parse(hex.substring(i, i + 2), radix: 16)],
     );

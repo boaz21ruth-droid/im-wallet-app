@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:web3dart/web3dart.dart';
 import '../../../services/wallet/chain_config.dart';
 import '../../../services/wallet/evm_service.dart';
+import '../../../services/wallet/swap/swap_config.dart';
 import '../../../services/wallet/swap/swap_models.dart';
 import '../../../services/wallet/swap/swap_provider.dart';
 import '../../../services/wallet/swap/zerox_provider.dart';
@@ -21,6 +22,7 @@ class SwapLogic extends GetxController {
   final priceResult = Rxn<SwapPriceResult>();
   final isFetchingPrice = false.obs;
   final lastError = Rxn<SwapException>();
+  final needsApproval = Rxn<bool>();
   final slippageBps = 50.obs;
   final providerId = 'zerox'.obs;
 
@@ -89,6 +91,7 @@ class SwapLogic extends GetxController {
     if (sellAmountRaw == BigInt.zero) {
       priceResult.value = null;
       lastError.value = null;
+      needsApproval.value = null;
       _priceSeq++;
       return;
     }
@@ -104,6 +107,7 @@ class SwapLogic extends GetxController {
     sellAmountText.value = '';
     priceResult.value = null;
     lastError.value = null;
+    needsApproval.value = null;
   }
 
   void switchChain(String chainKey) {
@@ -114,6 +118,7 @@ class SwapLogic extends GetxController {
     sellAmountText.value = '';
     priceResult.value = null;
     lastError.value = null;
+    needsApproval.value = null;
   }
 
   void selectSellToken(SwapToken t) {
@@ -161,12 +166,52 @@ class SwapLogic extends GetxController {
       final r = await activeProvider.getPrice(req);
       if (seq != _priceSeq) return; // stale; another call superseded
       priceResult.value = r;
+      // Cheap follow-up: one allowance RPC call (or instant for native).
+      // TODO(task4): refresh needsApproval after successful approve
+      await _refreshApprovalState();
     } on SwapException catch (e) {
       if (seq != _priceSeq) return;
       lastError.value = e;
       priceResult.value = null;
     } finally {
       if (seq == _priceSeq) isFetchingPrice.value = false;
+    }
+  }
+
+  /// Determines whether the user must approve the swap router to spend
+  /// the sell token before [executeSwap] can proceed. Native sells skip the
+  /// allowance check (no approval needed). Errors set `needsApproval` to null.
+  Future<void> _refreshApprovalState() async {
+    final sell = sellToken.value;
+    final amt = sellAmountRaw;
+    final taker = takerAddress;
+    final chainKey = swapChainKey.value;
+    final config = chains[chainKey];
+    if (sell == null || amt == BigInt.zero || taker.isEmpty || config == null) {
+      needsApproval.value = null;
+      return;
+    }
+    if (sell.isNative) {
+      needsApproval.value = false;
+      return;
+    }
+    final contract = sell.contractAddress;
+    if (contract == null) {
+      needsApproval.value = null;
+      return;
+    }
+    final svc = EvmService(config, chainKey);
+    try {
+      final allowance = await svc.getAllowance(
+        owner: taker,
+        spender: kZeroxAllowanceHolder,
+        tokenContract: contract,
+      );
+      needsApproval.value = allowance < amt;
+    } catch (_) {
+      needsApproval.value = null;
+    } finally {
+      svc.dispose();
     }
   }
 
@@ -269,6 +314,8 @@ class SwapLogic extends GetxController {
         txHash: txHash,
         chainKey: chainKey,
       );
+    } on ArgumentError {
+      return const SwapExecutionResult.failed('报价数据无效');
     } catch (e) {
       return SwapExecutionResult.failed('Swap 失败: $e');
     } finally {
