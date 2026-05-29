@@ -2,8 +2,31 @@
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:openim/services/wallet/swap/remote_swap_config.dart';
 import 'package:openim/services/wallet/swap/swap_models.dart';
 import 'package:openim/services/wallet/swap/zerox_provider.dart';
+
+RemoteSwapConfig _testConfig({String apiKey = 'test'}) {
+  return RemoteSwapConfig(
+    zerox: ZeroExRemoteConfig(
+      apiKey: apiKey,
+      apiBase: 'https://api.0x.org',
+      version: 'v2',
+    ),
+    chains: const {
+      'eth': RemoteChainConfig(
+        rpcs: [],
+        feeRecipient: '',
+        allowedRouters: ['0x0000000000001fF3684f28c67538d4D072C22734'],
+      ),
+    },
+    limits: const RemoteLimits(
+      largeAmountUsdThreshold: 10000,
+      priceDriftBps: 100,
+      approveReceiptTimeoutSeconds: 60,
+    ),
+  );
+}
 
 /// Minimal in-memory interceptor: returns canned responses for a list of
 /// (matcher → response) pairs. No external dep beyond dio.
@@ -70,7 +93,7 @@ void main() {
         ),
       ),
     ]);
-    final p = ZeroExProvider(dio: _makeDio(adapter), apiKey: 'test');
+    final p = ZeroExProvider(dio: _makeDio(adapter), config: _testConfig());
     final r = await p.getPrice(req());
     expect(r.buyAmount, equals(BigInt.parse('3245100000')));
     expect(r.gasEstimate, equals(BigInt.from(150000)));
@@ -79,7 +102,7 @@ void main() {
   });
 
   test('getPrice throws noApiKey when key empty', () async {
-    final p = ZeroExProvider(dio: Dio(), apiKey: '');
+    final p = ZeroExProvider(dio: Dio(), config: _testConfig(apiKey: ''));
     expect(
       () => p.getPrice(req()),
       throwsA(isA<SwapException>().having((e) => e.kind, 'kind',
@@ -94,7 +117,7 @@ void main() {
         body: _json('{"reason":"INSUFFICIENT_ASSET_LIQUIDITY"}', 422),
       ),
     ]);
-    final p = ZeroExProvider(dio: _makeDio(adapter), apiKey: 'test');
+    final p = ZeroExProvider(dio: _makeDio(adapter), config: _testConfig());
     expect(
       () => p.getPrice(req()),
       throwsA(isA<SwapException>().having((e) => e.kind, 'kind',
@@ -109,7 +132,7 @@ void main() {
         body: _json('{"reason":"throttled"}', 429),
       ),
     ]);
-    final p = ZeroExProvider(dio: _makeDio(adapter), apiKey: 'test');
+    final p = ZeroExProvider(dio: _makeDio(adapter), config: _testConfig());
     expect(
       () => p.getPrice(req()),
       throwsA(isA<SwapException>().having((e) => e.kind, 'kind',
@@ -118,7 +141,7 @@ void main() {
   });
 
   test('supportsChain matches EVM mainnets only', () {
-    final p = ZeroExProvider(dio: Dio(), apiKey: 'test');
+    final p = ZeroExProvider(dio: Dio(), config: _testConfig());
     expect(p.supportsChain('eth'), isTrue);
     expect(p.supportsChain('polygon'), isTrue);
     expect(p.supportsChain('tron'), isFalse);

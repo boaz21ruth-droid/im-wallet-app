@@ -1,12 +1,12 @@
 // lib/services/wallet/swap/zerox_provider.dart
 import 'package:dio/dio.dart';
+import 'remote_swap_config.dart';
 import 'swap_config.dart';
+import 'swap_config_service.dart';
 import 'swap_models.dart';
 import 'swap_provider.dart';
 
 class ZeroExProvider implements SwapProvider {
-  static const String baseUrl = 'https://api.0x.org';
-
   /// Maps wallet chain keys to 0x `chainId`.
   static const Map<String, int> _chainIds = {
     'eth': 1,
@@ -17,11 +17,22 @@ class ZeroExProvider implements SwapProvider {
   };
 
   final Dio _dio;
-  final String _apiKey;
 
-  ZeroExProvider({Dio? dio, String? apiKey})
-      : _dio = dio ?? Dio(BaseOptions(connectTimeout: const Duration(seconds: 10), receiveTimeout: const Duration(seconds: 10))),
-        _apiKey = apiKey ?? kZeroxApiKey;
+  /// When non-null, this overrides whatever `SwapConfigService.to.current`
+  /// returns at call time. Tests inject a fixed config; production reads
+  /// through the service so the in-flight config can rotate.
+  final RemoteSwapConfig? _override;
+
+  ZeroExProvider({Dio? dio, RemoteSwapConfig? config})
+      : _dio = dio ??
+            Dio(BaseOptions(
+              connectTimeout: const Duration(seconds: 10),
+              receiveTimeout: const Duration(seconds: 10),
+            )),
+        _override = config;
+
+  RemoteSwapConfig get _config =>
+      _override ?? SwapConfigService.to.current;
 
   @override
   String get id => 'zerox';
@@ -44,8 +55,9 @@ class ZeroExProvider implements SwapProvider {
       'taker': req.takerAddress,
       'slippageBps': req.slippageBps,
     };
-    final recipient = kFeeRecipients[req.chainKey];
-    if (recipient != null && recipient.isNotEmpty) {
+    final chain = _config.chains[req.chainKey];
+    final recipient = chain?.feeRecipient ?? '';
+    if (recipient.isNotEmpty) {
       params['swapFeeBps'] = kSwapFeeBps;
       params['swapFeeRecipient'] = recipient;
       params['swapFeeToken'] = _toApiAddress(req.buyToken);
@@ -54,12 +66,12 @@ class ZeroExProvider implements SwapProvider {
   }
 
   Map<String, String> get _headers => {
-        '0x-api-key': _apiKey,
-        '0x-version': 'v2',
+        '0x-api-key': _config.zerox.apiKey,
+        '0x-version': _config.zerox.version,
       };
 
   void _validateBeforeCall(SwapQuoteRequest req) {
-    if (_apiKey.isEmpty) {
+    if (_config.zerox.apiKey.isEmpty) {
       throw const SwapException(SwapErrorKind.noApiKey, '0x API key not set');
     }
     if (!supportsChain(req.chainKey)) {
@@ -68,12 +80,14 @@ class ZeroExProvider implements SwapProvider {
     }
   }
 
+  String get _baseUrl => _config.zerox.apiBase;
+
   @override
   Future<SwapPriceResult> getPrice(SwapQuoteRequest req) async {
     _validateBeforeCall(req);
     try {
       final resp = await _dio.get(
-        '$baseUrl/swap/allowance-holder/price',
+        '$_baseUrl/swap/allowance-holder/price',
         queryParameters: _baseParams(req),
         options: Options(headers: _headers),
       );
@@ -100,7 +114,7 @@ class ZeroExProvider implements SwapProvider {
     _validateBeforeCall(req);
     try {
       final resp = await _dio.get(
-        '$baseUrl/swap/allowance-holder/quote',
+        '$_baseUrl/swap/allowance-holder/quote',
         queryParameters: _baseParams(req),
         options: Options(headers: _headers),
       );
@@ -121,7 +135,9 @@ class ZeroExProvider implements SwapProvider {
         );
       }
       final to = tx['to'] as String;
-      if (!kZeroxAllowedRouters.any((a) => a.toLowerCase() == to.toLowerCase())) {
+      final allowed = _config.chains[req.chainKey]?.allowedRouters ??
+          const [kZeroxAllowanceHolder];
+      if (!allowed.any((a) => a.toLowerCase() == to.toLowerCase())) {
         throw SwapException(
           SwapErrorKind.invalidParams,
           'quote.to is not a known 0x router: $to',
