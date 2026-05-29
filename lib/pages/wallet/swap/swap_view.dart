@@ -182,7 +182,11 @@ class _SellCardState extends State<_SellCard> {
 
   AssetBalance? _balanceFor(SwapToken? t) {
     if (t == null) return null;
-    for (final b in widget.logic.wallet.currentChainBalances) {
+    // Read from the chain the *swap page* is on, not the wallet main page.
+    // The two can diverge: user picked Polygon in Swap while wallet is still
+    // viewing Ethereum.
+    for (final b
+        in widget.logic.wallet.balancesForChain(t.chainKey)) {
       if (b.symbol == t.symbol && b.contractAddress == t.contractAddress) {
         return b;
       }
@@ -531,7 +535,23 @@ class _MainButton extends StatelessWidget {
     if (logic.sellToken.value == null || logic.buyToken.value == null) {
       return '选择代币';
     }
-    if (logic.sellAmountRaw == BigInt.zero) return '输入金额';
+    final amt = logic.sellAmountRaw;
+    if (amt == BigInt.zero) return '输入金额';
+    // Pre-flight: balance + gas insufficiency. Spec §7 rows.
+    final sell = logic.sellToken.value!;
+    final held = logic.heldBalance(sell);
+    if (held == null || held.rawBalance < amt) {
+      return '余额不足';
+    }
+    final native = logic.nativeBalanceForChain(logic.swapChainKey.value);
+    final estGas = logic.estGasInWei;
+    if (native != null && estGas != null) {
+      final nativeWei = native.rawBalance;
+      final gasNeeded = sell.isNative ? amt + estGas : estGas;
+      if (nativeWei < gasNeeded) {
+        return '${native.symbol} 不足支付 Gas';
+      }
+    }
     if (logic.isFetchingPrice.value) return '查询报价中…';
     final err = logic.lastError.value;
     if (err != null) {

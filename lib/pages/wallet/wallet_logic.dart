@@ -11,6 +11,7 @@ import '../../services/wallet/tron_service.dart';
 import '../../services/wallet/wallet_key.dart';
 import '../../services/wallet/wallet_models.dart';
 import '../../services/wallet/backend_wallet_service.dart';
+import '../../services/wallet/swap/swap_config_service.dart';
 import '../../core/controller/im_controller.dart';
 import '../../services/wallet/wallet_store.dart';
 
@@ -100,6 +101,7 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
       unawaited(refreshBalances());
       unawaited(refreshPrices());
       unawaited(_registerBackendAddresses());
+      unawaited(_refreshSwapConfig());
     }
     return ok;
   }
@@ -112,8 +114,19 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
       unawaited(refreshBalances());
       unawaited(refreshPrices());
       unawaited(_registerBackendAddresses());
+      unawaited(_refreshSwapConfig());
     }
     return ok;
+  }
+
+  /// Pulls the latest swap config (0x key, per-chain RPCs / fee recipient /
+  /// router whitelist, limits) so the swap page sees rotated values without
+  /// requiring an app release. Silently no-ops if SwapConfigService isn't
+  /// registered (it lives behind SwapBinding, which is permanent once first
+  /// touched).
+  Future<void> _refreshSwapConfig() async {
+    if (!Get.isRegistered<SwapConfigService>()) return;
+    await SwapConfigService.to.fetchAndCache();
   }
 
   Future<void> _registerBackendAddresses() async {
@@ -222,6 +235,7 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
     unawaited(refreshBalances());
     unawaited(refreshPrices());
     unawaited(_registerBackendAddresses());
+    unawaited(_refreshSwapConfig());
   }
 
   Map<String, String> _deriveAddresses(Uint8List seed, int index) {
@@ -243,11 +257,23 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
   // ── Balances ──────────────────────────────────────────────────────────────
 
   Future<void> refreshBalances() async {
-    final account = selectedAccount.value;
-    if (account == null) return;
     isLoadingBalances.value = true;
     try {
-      final chainKey = selectedChainKey.value;
+      await _fetchBalancesFor(selectedChainKey.value);
+    } finally {
+      isLoadingBalances.value = false;
+    }
+  }
+
+  /// Refreshes balances for an arbitrary chain — used by Swap when its picker
+  /// is on a chain the wallet main page hasn't selected.
+  Future<void> refreshBalancesForChain(String chainKey) =>
+      _fetchBalancesFor(chainKey);
+
+  Future<void> _fetchBalancesFor(String chainKey) async {
+    final account = selectedAccount.value;
+    if (account == null) return;
+    try {
       var address = account.addresses[chainKey];
       if (address == null) {
         final cfg = chains[chainKey];
@@ -268,17 +294,23 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
       } else {
         final config = chains[chainKey];
         if (config == null) return;
-        final svc = EvmService(config, chainKey);
+        final rpcsOverride = _swapConfigRpcs(chainKey);
+        final svc = EvmService(config, chainKey, rpcsOverride: rpcsOverride);
         final list = await svc.getAllBalances(address);
         for (final b in list) {
           balances['$chainKey:${b.symbol}'] = b;
         }
         svc.dispose();
       }
-    } catch (_) {
-    } finally {
-      isLoadingBalances.value = false;
-    }
+    } catch (_) {}
+  }
+
+  /// Returns the RPC list the swap config wants for `chainKey`, or null when
+  /// the service isn't registered yet (i.e. before the first Swap entry).
+  List<String>? _swapConfigRpcs(String chainKey) {
+    if (!Get.isRegistered<SwapConfigService>()) return null;
+    final rpcs = SwapConfigService.to.current.chains[chainKey]?.rpcs;
+    return (rpcs == null || rpcs.isEmpty) ? null : rpcs;
   }
 
   // ── Prices ────────────────────────────────────────────────────────────────
@@ -347,10 +379,14 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
     return address ?? '';
   }
 
-  List<AssetBalance> get currentChainBalances {
-    final key = selectedChainKey.value;
-    return balances.values.where((b) => b.chainKey == key).toList();
-  }
+  List<AssetBalance> get currentChainBalances =>
+      balancesForChain(selectedChainKey.value);
+
+  /// Returns the held balances for `chainKey`, irrespective of which chain the
+  /// wallet main view currently has selected. Used by Swap, which has its own
+  /// independent chain picker.
+  List<AssetBalance> balancesForChain(String chainKey) =>
+      balances.values.where((b) => b.chainKey == chainKey).toList();
 
   // ── Tx History ────────────────────────────────────────────────────────────
 

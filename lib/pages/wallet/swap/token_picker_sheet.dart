@@ -35,9 +35,10 @@ class _TokenPickerSheet extends StatelessWidget {
     if (cfg == null) return const [];
 
     if (side == TokenPickerSide.sell) {
-      // From: only what the user actually holds on this chain.
-      final held = logic.wallet.currentChainBalances
-          .where((b) => b.chainKey == chainKey)
+      // From: only what the user actually holds on the *swap* chain — not the
+      // wallet main page's chain. Avoids the "余额 0" bug when the two diverge.
+      final held = logic.wallet
+          .balancesForChain(chainKey)
           .map((b) => SwapToken(
                 chainKey: chainKey,
                 symbol: b.symbol,

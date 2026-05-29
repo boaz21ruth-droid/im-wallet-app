@@ -20,10 +20,22 @@ class EvmService {
   // Index of the last RPC that successfully responded — sticky within this instance
   int _preferred = 0;
 
-  EvmService(this.config, this.chainKey)
-      : _clients = config.rpcs
+  /// `rpcsOverride` lets callers pass a runtime-supplied RPC list (typically
+  /// from the backend's swap_config response) that takes priority over the
+  /// hardcoded `config.rpcs`. Falls back to `config.rpcs` when null/empty so
+  /// existing callers keep working unchanged.
+  EvmService(this.config, this.chainKey, {List<String>? rpcsOverride})
+      : _clients = _mergeRpcs(config.rpcs, rpcsOverride)
             .map((url) => Web3Client(url, http.Client()))
             .toList();
+
+  static List<String> _mergeRpcs(List<String> hardcoded, List<String>? remote) {
+    if (remote == null || remote.isEmpty) return hardcoded;
+    return [
+      ...remote,
+      ...hardcoded.where((u) => !remote.contains(u)),
+    ];
+  }
 
   // Core retry wrapper: starts at _preferred, rotates on any exception.
   // On success, pins _preferred to that index so subsequent calls in the
