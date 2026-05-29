@@ -120,10 +120,17 @@ class ZeroExProvider implements SwapProvider {
           requiredAmount: req.sellAmount,
         );
       }
+      final to = tx['to'] as String;
+      if (!kZeroxAllowedRouters.any((a) => a.toLowerCase() == to.toLowerCase())) {
+        throw SwapException(
+          SwapErrorKind.invalidParams,
+          'quote.to is not a known 0x router: $to',
+        );
+      }
       return SwapQuote(
         buyAmount: buyAmount,
         minBuyAmount: minBuy,
-        to: tx['to'] as String,
+        to: to,
         data: tx['data'] as String,
         value: BigInt.parse((tx['value'] ?? '0').toString()),
         gas: tx['gas'] != null ? BigInt.tryParse(tx['gas'].toString()) : null,

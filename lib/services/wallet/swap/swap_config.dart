@@ -26,6 +26,15 @@ const Map<String, String> kFeeRecipients = {
 const String kZeroxAllowanceHolder =
     '0x0000000000001fF3684f28c67538d4D072C22734';
 
+/// Allow-list of contract addresses that 0x v2 may legitimately return as
+/// the transaction `to` in a quote. The user signs whatever address comes
+/// back, so we validate it before broadcasting. AllowanceHolder is the only
+/// `to` address 0x v2 uses on EVM mainnets.
+const Set<String> kZeroxAllowedRouters = {
+  // Same address across all 5 EVM mainnets
+  '0x0000000000001fF3684f28c67538d4D072C22734',
+};
+
 /// EVM chain keys supported by 0x v2 in this app. Must be a subset of
 /// `chains` in `chain_config.dart`. Drives Provider.supportsChain().
 const List<String> kZeroxSupportedChains = [

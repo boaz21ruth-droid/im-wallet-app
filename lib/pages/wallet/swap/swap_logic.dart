@@ -219,6 +219,12 @@ class SwapLogic extends GetxController {
 
   /// Result of executeSwap. Carries the broadcast tx hash, or an error
   /// description for the result page.
+  //
+  // TODO(swap-followup): If the user pops SwapView while executeSwap is awaiting
+  // network calls, `Get.context` may resolve to the wrong route. The TOTP/drift
+  // dialogs and final SwapResultView could appear over an unrelated screen.
+  // Mitigation: capture the SwapView route at entry and check `Navigator.canPop`
+  // before each context use; bail with `.failed('已取消')` if the route is gone.
   Future<SwapExecutionResult> executeSwap({required String password}) async {
     final sell = sellToken.value;
     final buy = buyToken.value;
@@ -347,6 +353,8 @@ class SwapLogic extends GetxController {
         txHash: txHash,
         chainKey: chainKey,
       );
+    } on SwapException catch (e) {
+      return SwapExecutionResult.failed('Swap 失败: ${e.message}');
     } on ArgumentError {
       return const SwapExecutionResult.failed('报价数据无效');
     } catch (e) {
