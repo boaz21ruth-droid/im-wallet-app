@@ -6,9 +6,11 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
 import '../../../services/wallet/chain_config.dart';
+import '../../../services/wallet/swap/swap_config.dart';
 import '../../../services/wallet/swap/swap_models.dart';
 import '../../../services/wallet/wallet_models.dart';
 import 'swap_logic.dart';
+import 'swap_result_view.dart';
 import 'token_picker_sheet.dart';
 
 class SwapView extends StatelessWidget {
@@ -44,6 +46,18 @@ class SwapView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (kZeroxApiKey.isEmpty)
+              Container(
+                margin: EdgeInsets.only(bottom: 12.h),
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: Colors.red.withAlpha(20),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Text('Swap 未配置，请联系运营',
+                    style: TextStyle(
+                        color: Colors.red[700], fontSize: 13.sp)),
+              ),
             _buildChainChip(logic),
             SizedBox(height: 16.h),
             _SellCard(logic: logic),
@@ -497,11 +511,12 @@ class _PasswordSheetState extends State<_PasswordSheet> {
     EasyLoading.show(status: '提交中...');
     final result = await widget.logic.executeSwap(password: _pwdCtrl.text);
     EasyLoading.dismiss();
-    if (result.ok) {
-      EasyLoading.showSuccess('交易已广播\n${result.txHash}');
-    } else {
-      EasyLoading.showError(result.error ?? 'Swap 失败');
-    }
+    Get.off(() => SwapResultView(
+          success: result.ok,
+          txHash: result.txHash,
+          chainKey: result.chainKey,
+          errorMessage: result.error,
+        ));
   }
 
   @override

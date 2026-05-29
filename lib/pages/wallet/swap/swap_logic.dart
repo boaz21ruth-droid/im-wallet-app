@@ -1,8 +1,9 @@
 // lib/pages/wallet/swap/swap_logic.dart
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:web3dart/web3dart.dart';
+import '../../../services/totp_service.dart';
 import '../../../services/wallet/chain_config.dart';
 import '../../../services/wallet/evm_service.dart';
 import '../../../services/wallet/swap/swap_config.dart';
@@ -10,6 +11,7 @@ import '../../../services/wallet/swap/swap_models.dart';
 import '../../../services/wallet/swap/swap_provider.dart';
 import '../../../services/wallet/swap/zerox_provider.dart';
 import '../../../services/wallet/wallet_key.dart';
+import '../send/totp_verify_dialog.dart';
 import '../wallet_logic.dart';
 
 class SwapLogic extends GetxController {
@@ -299,6 +301,38 @@ class SwapLogic extends GetxController {
         }
       }
 
+      // Step 2.5: TOTP gate (if user has TOTP enabled)
+      final totpEnabled = await TotpService.status();
+      if (totpEnabled) {
+        final ctx = Get.context;
+        if (ctx == null) return const SwapExecutionResult.failed('上下文丢失');
+        // ignore: use_build_context_synchronously
+        final ok = await showTotpVerifyDialog(ctx);
+        if (!ok) return const SwapExecutionResult.failed('已取消');
+      }
+
+      // Step 2.7: price-drift check — re-fetch quote and compare buyAmount.
+      // If drift > 1% from the original buyAmount, prompt user to confirm.
+      try {
+        final fresh = await activeProvider.getQuote(req);
+        final drift = (fresh.buyAmount - quote.buyAmount).abs();
+        final threshold =
+            quote.buyAmount * BigInt.from(1) ~/ BigInt.from(100); // 1%
+        if (drift > threshold) {
+          final ctx = Get.context;
+          if (ctx == null) return const SwapExecutionResult.failed('上下文丢失');
+          final accepted = await _confirmPriceDrift(
+              // ignore: use_build_context_synchronously
+              ctx,
+              oldAmount: quote.buyAmount,
+              newAmount: fresh.buyAmount);
+          if (!accepted) return const SwapExecutionResult.failed('已取消（价格漂移）');
+        }
+        quote = fresh;
+      } on SwapException catch (e) {
+        return SwapExecutionResult.failed('重新报价失败: ${e.message}');
+      }
+
       // Step 3: send swap calldata
       final txHash = await svc.sendRaw(
         senderKey: evmKey,
@@ -321,6 +355,35 @@ class SwapLogic extends GetxController {
     } finally {
       svc.dispose();
     }
+  }
+
+  Future<bool> _confirmPriceDrift(BuildContext ctx,
+      {required BigInt oldAmount, required BigInt newAmount}) async {
+    final buy = buyToken.value;
+    if (buy == null) return false;
+    String fmt(BigInt v) {
+      final d = BigInt.from(10).pow(buy.decimals);
+      final whole = v ~/ d;
+      final frac = (v - whole * d).toString().padLeft(buy.decimals, '0');
+      return '$whole.${frac.substring(0, frac.length.clamp(0, 6))}';
+    }
+    final result = await showDialog<bool>(
+      context: ctx,
+      builder: (c) => AlertDialog(
+        title: const Text('价格已变动'),
+        content: Text(
+            '原报价: ${fmt(oldAmount)} ${buy.symbol}\n新报价: ${fmt(newAmount)} ${buy.symbol}\n是否按新价继续？'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('取消')),
+          TextButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('继续')),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   static final BigInt _maxUint256 =
