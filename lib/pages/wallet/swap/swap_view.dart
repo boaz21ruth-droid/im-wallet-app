@@ -1,6 +1,7 @@
 // lib/pages/wallet/swap/swap_view.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
@@ -408,12 +409,12 @@ class _MainButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       final text = _resolveText(logic);
-      final enabled = text == 'Swap';
+      final enabled = text == 'Swap' || text.startsWith('授权');
       return SizedBox(
         width: double.infinity,
         height: 52.h,
         child: ElevatedButton(
-          onPressed: enabled ? () {} : null, // wired in Task 3
+          onPressed: enabled ? () => _onTap(context) : null,
           style: ElevatedButton.styleFrom(
             backgroundColor: Styles.c_0089FF,
             disabledBackgroundColor: Styles.c_8E9AB0,
@@ -429,6 +430,18 @@ class _MainButton extends StatelessWidget {
         ),
       );
     });
+  }
+
+  void _onTap(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Styles.c_FFFFFF,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (_) => _PasswordSheet(logic: logic),
+    );
   }
 
   String _resolveText(SwapLogic logic) {
@@ -456,6 +469,89 @@ class _MainButton extends StatelessWidget {
     }
     if (logic.priceResult.value == null) return '输入金额';
     return 'Swap';
+  }
+}
+
+class _PasswordSheet extends StatefulWidget {
+  final SwapLogic logic;
+  const _PasswordSheet({required this.logic});
+
+  @override
+  State<_PasswordSheet> createState() => _PasswordSheetState();
+}
+
+class _PasswordSheetState extends State<_PasswordSheet> {
+  final _pwdCtrl = TextEditingController();
+  bool _sending = false;
+
+  @override
+  void dispose() {
+    _pwdCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() => _sending = true);
+    Get.back(); // close password sheet first
+    EasyLoading.show(status: '提交中...');
+    final result = await widget.logic.executeSwap(password: _pwdCtrl.text);
+    EasyLoading.dismiss();
+    if (result.ok) {
+      EasyLoading.showSuccess('交易已广播\n${result.txHash}');
+    } else {
+      EasyLoading.showError(result.error ?? 'Swap 失败');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          20.w, 20.h, 20.w, MediaQuery.of(context).viewInsets.bottom + 20.h),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('确认 Swap',
+              style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Styles.c_0C1C33)),
+          SizedBox(height: 12.h),
+          Text('输入钱包密码确认',
+              style:
+                  TextStyle(fontSize: 14.sp, color: Styles.c_8E9AB0)),
+          SizedBox(height: 8.h),
+          TextField(
+            controller: _pwdCtrl,
+            obscureText: true,
+            style: TextStyle(fontSize: 16.sp),
+            decoration: InputDecoration(
+              hintText: '钱包密码',
+              border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.r)),
+            ),
+          ),
+          SizedBox(height: 20.h),
+          SizedBox(
+            width: double.infinity,
+            height: 50.h,
+            child: ElevatedButton(
+              onPressed: _sending ? null : _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Styles.c_0089FF,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.r)),
+              ),
+              child: Text('确认',
+                  style: TextStyle(
+                      fontSize: 16.sp, fontWeight: FontWeight.w600)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

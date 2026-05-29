@@ -2,10 +2,13 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:web3dart/web3dart.dart';
 import '../../../services/wallet/chain_config.dart';
+import '../../../services/wallet/evm_service.dart';
 import '../../../services/wallet/swap/swap_models.dart';
 import '../../../services/wallet/swap/swap_provider.dart';
 import '../../../services/wallet/swap/zerox_provider.dart';
+import '../../../services/wallet/wallet_key.dart';
 import '../wallet_logic.dart';
 
 class SwapLogic extends GetxController {
@@ -167,9 +170,131 @@ class SwapLogic extends GetxController {
     }
   }
 
+  /// Result of executeSwap. Carries the broadcast tx hash, or an error
+  /// description for the result page.
+  Future<SwapExecutionResult> executeSwap({required String password}) async {
+    final sell = sellToken.value;
+    final buy = buyToken.value;
+    final amt = sellAmountRaw;
+    final taker = takerAddress;
+    if (sell == null || buy == null || amt == BigInt.zero || taker.isEmpty) {
+      return const SwapExecutionResult.failed('内部错误：缺少参数');
+    }
+    final account = wallet.selectedAccount.value;
+    if (account == null) {
+      return const SwapExecutionResult.failed('未选择账户');
+    }
+    final chainKey = swapChainKey.value;
+    final config = chains[chainKey];
+    if (config == null) {
+      return const SwapExecutionResult.failed('链配置缺失');
+    }
+
+    // Step 1: hard quote
+    final req = SwapQuoteRequest(
+      chainKey: chainKey,
+      sellToken: sell,
+      buyToken: buy,
+      sellAmount: amt,
+      takerAddress: taker,
+      slippageBps: slippageBps.value,
+    );
+    SwapQuote quote;
+    try {
+      quote = await activeProvider.getQuote(req);
+    } on SwapException catch (e) {
+      return SwapExecutionResult.failed('报价失败: ${e.message}');
+    }
+
+    // Decrypt mnemonic → derive EVM key
+    final svc = EvmService(config, chainKey);
+    EthPrivateKey? evmKey;
+    try {
+      evmKey = await wallet.vault.withMnemonic(password, (mBytes) async {
+        final seed = WalletKey.mnemonicToSeed(mBytes);
+        try {
+          return WalletKey.deriveEVMKey(seed, account.index);
+        } finally {
+          seed.fillRange(0, seed.length, 0);
+        }
+      });
+    } catch (e) {
+      svc.dispose();
+      return SwapExecutionResult.failed('密码错误或解密失败');
+    }
+    if (evmKey == null) {
+      svc.dispose();
+      return const SwapExecutionResult.failed('无法派生密钥');
+    }
+
+    try {
+      // Step 2: Approve if needed
+      if (quote.approval != null) {
+        final approval = quote.approval!;
+        try {
+          final approveTx = await svc.sendApprove(
+            senderKey: evmKey,
+            tokenContract: approval.tokenAddress,
+            spender: approval.spender,
+            amount: _maxUint256,
+          );
+          final ok = await svc.waitForReceipt(approveTx);
+          if (!ok) {
+            return SwapExecutionResult.failed('授权交易未确认，请稍后重试');
+          }
+        } catch (e) {
+          return SwapExecutionResult.failed('授权失败: $e');
+        }
+
+        // Re-quote — calldata + buyAmount may shift after approve confirmed.
+        try {
+          quote = await activeProvider.getQuote(req);
+        } on SwapException catch (e) {
+          return SwapExecutionResult.failed('重新报价失败: ${e.message}');
+        }
+      }
+
+      // Step 3: send swap calldata
+      final txHash = await svc.sendRaw(
+        senderKey: evmKey,
+        to: quote.to,
+        dataHex: quote.data,
+        value: quote.value,
+        gasLimit: quote.gas,
+        gasPrice: quote.gasPrice,
+      );
+      // Don't await final confirmation — return immediately.
+      wallet.refreshBalances();
+      return SwapExecutionResult.success(
+        txHash: txHash,
+        chainKey: chainKey,
+      );
+    } catch (e) {
+      return SwapExecutionResult.failed('Swap 失败: $e');
+    } finally {
+      svc.dispose();
+    }
+  }
+
+  static final BigInt _maxUint256 =
+      BigInt.parse('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', radix: 16);
+
   @override
   void onClose() {
     _debounce?.cancel();
     super.onClose();
   }
+}
+
+class SwapExecutionResult {
+  final bool ok;
+  final String? txHash;
+  final String? chainKey;
+  final String? error;
+
+  const SwapExecutionResult.success({required String this.txHash, required String this.chainKey})
+      : ok = true, error = null;
+
+  const SwapExecutionResult.failed(String this.error)
+      : ok = false, txHash = null, chainKey = null;
 }
