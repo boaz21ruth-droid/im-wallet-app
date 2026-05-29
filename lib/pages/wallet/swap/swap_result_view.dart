@@ -24,8 +24,9 @@ class SwapResultView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final explorer = chainKey != null && txHash != null
-        ? '${chains[chainKey!]?.txExplorerBase ?? ''}$txHash'
+    final base = (chainKey != null) ? chains[chainKey!]?.txExplorerBase : null;
+    final explorer = (base != null && base.isNotEmpty && txHash != null)
+        ? '$base$txHash'
         : null;
     return Scaffold(
       backgroundColor: Styles.c_F8F9FA,
@@ -39,7 +40,7 @@ class SwapResultView extends StatelessWidget {
                 color: Styles.c_0C1C33)),
         leading: IconButton(
           icon: Icon(Icons.close, color: Styles.c_0C1C33, size: 22.w),
-          onPressed: () => Get.until((r) => r.isFirst || r.settings.name == '/'),
+          onPressed: () => Get.until((r) => r.isFirst),
         ),
       ),
       body: Padding(
@@ -94,7 +95,7 @@ class SwapResultView extends StatelessWidget {
               ),
             ],
             const Spacer(),
-            if (explorer != null && explorer.isNotEmpty)
+            if (explorer != null)
               SizedBox(
                 width: double.infinity,
                 height: 48.h,
@@ -116,8 +117,7 @@ class SwapResultView extends StatelessWidget {
               width: double.infinity,
               height: 48.h,
               child: ElevatedButton(
-                onPressed: () =>
-                    Get.until((r) => r.isFirst || r.settings.name == '/'),
+                onPressed: () => Get.until((r) => r.isFirst),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Styles.c_0089FF,
                   foregroundColor: Colors.white,

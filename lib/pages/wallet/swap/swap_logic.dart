@@ -275,7 +275,17 @@ class SwapLogic extends GetxController {
     }
 
     try {
-      // Step 2: Approve if needed
+      // Step 2: TOTP gate (gates approve + swap)
+      final totpEnabled = await TotpService.status();
+      if (totpEnabled) {
+        final ctx = Get.context;
+        if (ctx == null) return const SwapExecutionResult.failed('上下文丢失');
+        // ignore: use_build_context_synchronously
+        final ok = await showTotpVerifyDialog(ctx);
+        if (!ok) return const SwapExecutionResult.failed('已取消');
+      }
+
+      // Step 2.1: Approve if needed
       if (quote.approval != null) {
         final approval = quote.approval!;
         try {
@@ -301,23 +311,12 @@ class SwapLogic extends GetxController {
         }
       }
 
-      // Step 2.5: TOTP gate (if user has TOTP enabled)
-      final totpEnabled = await TotpService.status();
-      if (totpEnabled) {
-        final ctx = Get.context;
-        if (ctx == null) return const SwapExecutionResult.failed('上下文丢失');
-        // ignore: use_build_context_synchronously
-        final ok = await showTotpVerifyDialog(ctx);
-        if (!ok) return const SwapExecutionResult.failed('已取消');
-      }
-
       // Step 2.7: price-drift check — re-fetch quote and compare buyAmount.
       // If drift > 1% from the original buyAmount, prompt user to confirm.
       try {
         final fresh = await activeProvider.getQuote(req);
         final drift = (fresh.buyAmount - quote.buyAmount).abs();
-        final threshold =
-            quote.buyAmount * BigInt.from(1) ~/ BigInt.from(100); // 1%
+        final threshold = quote.buyAmount ~/ BigInt.from(100); // 1%
         if (drift > threshold) {
           final ctx = Get.context;
           if (ctx == null) return const SwapExecutionResult.failed('上下文丢失');
