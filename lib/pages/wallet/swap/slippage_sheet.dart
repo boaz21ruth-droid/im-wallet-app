@@ -6,6 +6,18 @@ import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
 import 'swap_logic.dart';
 
+/// Reads an Rx value without subscribing the surrounding builder to changes.
+/// Used when a snapshot read is intentional (e.g., a one-shot bottom sheet).
+extension _RxPeek<T> on Rx<T> {
+  T peek() {
+    final oldProxy = RxInterface.proxy;
+    RxInterface.proxy = null;
+    final v = value;
+    RxInterface.proxy = oldProxy;
+    return v;
+  }
+}
+
 Future<void> showSlippageSheet(BuildContext context) {
   return showModalBottomSheet(
     context: context,
@@ -33,8 +45,14 @@ class _SlippageSheetState extends State<_SlippageSheet> {
   String _label(int bps) => '${(bps / 100).toStringAsFixed(bps % 100 == 0 ? 1 : 2)}%';
 
   @override
+  void dispose() {
+    _customCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final current = logic.slippageBps.value;
+    final current = logic.slippageBps.peek();
     return Padding(
       padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w,
           MediaQuery.of(context).viewInsets.bottom + 20.h),
@@ -120,6 +138,7 @@ class _SlippageSheetState extends State<_SlippageSheet> {
                   final pct = double.tryParse(_customCtrl.text);
                   if (pct == null || pct <= 0 || pct > 50) return;
                   final bps = (pct * 100).round();
+                  if (bps < 1) return; // sub-basis-point inputs round to zero
                   logic.setSlippageBps(bps);
                   Get.back();
                 },
