@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
 import '../../../services/wallet/chain_config.dart';
 import '../../../services/wallet/swap/swap_models.dart';
+import '../../../services/wallet/wallet_models.dart';
 import 'swap_logic.dart';
 import 'token_picker_sheet.dart';
 
@@ -109,46 +110,80 @@ class SwapView extends StatelessWidget {
   }
 }
 
-class _SellCard extends StatelessWidget {
+class _SellCard extends StatefulWidget {
   final SwapLogic logic;
   const _SellCard({required this.logic});
 
   @override
+  State<_SellCard> createState() => _SellCardState();
+}
+
+class _SellCardState extends State<_SellCard> {
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.logic.sellAmountText.value);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  AssetBalance? _balanceFor(SwapToken? t) {
+    if (t == null) return null;
+    for (final b in widget.logic.wallet.currentChainBalances) {
+      if (b.symbol == t.symbol && b.contractAddress == t.contractAddress) {
+        return b;
+      }
+    }
+    return null;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final logic = widget.logic;
     return Obx(() {
       final t = logic.sellToken.value;
-      final balance = _balanceFor(logic, t);
+      final bal = _balanceFor(t);
+      final balanceText = t == null ? null : (bal?.balance.toString() ?? '0');
+
+      // Keep controller in sync with logic.sellAmountText without resetting
+      // the cursor when the texts already match.
+      final txt = logic.sellAmountText.value;
+      if (_ctrl.text != txt) {
+        _ctrl.value = TextEditingValue(
+          text: txt,
+          selection: TextSelection.collapsed(offset: txt.length),
+        );
+      }
+
       return _TokenCard(
         label: '支付',
-        balanceText: balance,
-        amountController: null,
+        balanceText: balanceText,
+        amountController: _ctrl,
         readOnly: false,
         token: t,
-        amountValue: logic.sellAmountText.value,
+        amountValue: txt,
         onAmountChanged: logic.onAmountInput,
         onPickToken: () async {
           final picked = await showTokenPickerSheet(
               context, TokenPickerSide.sell);
           if (picked != null) logic.selectSellToken(picked);
         },
-        onMax: t == null
+        onMax: (t == null || bal == null)
             ? null
             : () {
-                final bal = balance;
-                if (bal != null) logic.onAmountInput(bal);
+                // Use raw BigInt balance — round-trips through
+                // parseDecimalAmount without floating-point drift.
+                final precise = _formatBigIntFull(bal.rawBalance, bal.decimals);
+                logic.onAmountInput(precise);
               },
       );
     });
-  }
-
-  String? _balanceFor(SwapLogic logic, SwapToken? t) {
-    if (t == null) return null;
-    for (final b in logic.wallet.currentChainBalances) {
-      if (b.symbol == t.symbol && b.contractAddress == t.contractAddress) {
-        return b.balance.toString();
-      }
-    }
-    return '0';
   }
 }
 
@@ -183,6 +218,15 @@ class _BuyCard extends StatelessWidget {
       );
     });
   }
+}
+
+/// Builds a TextField fallback controller. Only reached when no controller
+/// is supplied and the field is editable — after the C1 fix, this path is
+/// unreachable in normal usage (the sell card always supplies a controller
+/// and the buy card is read-only). Kept defensively.
+TextEditingController _fallbackController(String text) {
+  return TextEditingController(text: text)
+    ..selection = TextSelection.collapsed(offset: text.length);
 }
 
 class _TokenCard extends StatelessWidget {
@@ -236,27 +280,39 @@ class _TokenCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: TextField(
-                  enabled: !readOnly,
-                  controller: amountController ??
-                      TextEditingController(text: amountValue)
-                    ..selection = TextSelection.collapsed(
-                        offset: amountValue.length),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
-                  ],
-                  style: TextStyle(
-                      fontSize: 22.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Styles.c_0C1C33),
-                  decoration: const InputDecoration(
-                    hintText: '0.0',
-                    border: InputBorder.none,
-                  ),
-                  onChanged: onAmountChanged,
-                ),
+                child: readOnly
+                    ? Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.h),
+                        child: Text(
+                          amountValue.isEmpty ? '0.0' : amountValue,
+                          style: TextStyle(
+                              fontSize: 22.sp,
+                              fontWeight: FontWeight.w600,
+                              color: amountValue.isEmpty
+                                  ? Styles.c_8E9AB0
+                                  : Styles.c_0C1C33),
+                        ),
+                      )
+                    : TextField(
+                        controller: amountController ??
+                            _fallbackController(amountValue),
+                        keyboardType:
+                            const TextInputType.numberWithOptions(
+                                decimal: true),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'[\d.]')),
+                        ],
+                        style: TextStyle(
+                            fontSize: 22.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Styles.c_0C1C33),
+                        decoration: const InputDecoration(
+                          hintText: '0.0',
+                          border: InputBorder.none,
+                        ),
+                        onChanged: onAmountChanged,
+                      ),
               ),
               if (onMax != null)
                 TextButton(
@@ -414,5 +470,19 @@ String _formatBigInt(BigInt raw, int decimals) {
   fracStr = fracStr.length > 6 ? fracStr.substring(0, 6) : fracStr;
   fracStr = fracStr.replaceFirst(RegExp(r'0+$'), '');
   if (fracStr.isEmpty) return whole.toString();
+  return '$whole.$fracStr';
+}
+
+/// Full-precision formatter — does NOT trim trailing zeros or cap fraction
+/// length. Inverse of [SwapLogic.parseDecimalAmount], so round-tripping
+/// raw <-> string preserves every wei. Used for the MAX button so the
+/// resulting parse matches the original BigInt exactly.
+String _formatBigIntFull(BigInt raw, int decimals) {
+  if (raw == BigInt.zero) return '0';
+  if (decimals == 0) return raw.toString();
+  final divisor = BigInt.from(10).pow(decimals);
+  final whole = raw ~/ divisor;
+  final frac = raw - whole * divisor;
+  final fracStr = frac.toString().padLeft(decimals, '0');
   return '$whole.$fracStr';
 }

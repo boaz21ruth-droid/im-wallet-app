@@ -88,6 +88,10 @@ class ZeroExProvider implements SwapProvider {
       );
     } on DioException catch (e) {
       throw _toSwapException(e);
+    } on SwapException {
+      rethrow;
+    } catch (e) {
+      throw SwapException(SwapErrorKind.unknown, 'parse failed: $e');
     }
   }
 
@@ -132,6 +136,10 @@ class ZeroExProvider implements SwapProvider {
       );
     } on DioException catch (e) {
       throw _toSwapException(e);
+    } on SwapException {
+      rethrow;
+    } catch (e) {
+      throw SwapException(SwapErrorKind.unknown, 'parse failed: $e');
     }
   }
 

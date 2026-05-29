@@ -1,5 +1,6 @@
 // lib/pages/wallet/swap/swap_logic.dart
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import '../../../services/wallet/chain_config.dart';
 import '../../../services/wallet/swap/swap_models.dart';
@@ -40,15 +41,54 @@ class SwapLogic extends GetxController {
   BigInt get sellAmountRaw {
     final t = sellToken.value;
     if (t == null) return BigInt.zero;
-    final txt = sellAmountText.value;
-    final dbl = double.tryParse(txt);
-    if (dbl == null || dbl <= 0) return BigInt.zero;
-    return BigInt.from(dbl * BigInt.from(10).pow(t.decimals).toDouble());
+    return parseDecimalAmount(sellAmountText.value, t.decimals);
+  }
+
+  /// Parses a decimal string into a raw BigInt amount using string math
+  /// (no doubles), so 18-decimal precision is preserved. Returns BigInt.zero
+  /// on any parse failure or non-positive value.
+  ///
+  /// Examples:
+  ///   parseDecimalAmount('0.1', 18)        -> 100000000000000000
+  ///   parseDecimalAmount('1.123456789', 6) -> 1123456  (truncates extra digits)
+  ///   parseDecimalAmount('', 18)           -> 0
+  @visibleForTesting
+  static BigInt parseDecimalAmount(String text, int decimals) {
+    final trimmed = text.trim();
+    if (trimmed.isEmpty) return BigInt.zero;
+    // Only digits and at most one '.'
+    if (!RegExp(r'^\d*\.?\d*$').hasMatch(trimmed)) return BigInt.zero;
+    final parts = trimmed.split('.');
+    if (parts.length > 2) return BigInt.zero;
+    final intPart = parts[0];
+    final fracPart = parts.length == 2 ? parts[1] : '';
+    if (intPart.isEmpty && fracPart.isEmpty) return BigInt.zero;
+    String paddedFrac;
+    if (fracPart.length >= decimals) {
+      paddedFrac = fracPart.substring(0, decimals);
+    } else {
+      paddedFrac = fracPart.padRight(decimals, '0');
+    }
+    final combined = '${intPart.isEmpty ? '0' : intPart}$paddedFrac';
+    final stripped = combined.replaceFirst(RegExp(r'^0+'), '');
+    if (stripped.isEmpty) return BigInt.zero;
+    try {
+      final v = BigInt.parse(stripped);
+      return v > BigInt.zero ? v : BigInt.zero;
+    } catch (_) {
+      return BigInt.zero;
+    }
   }
 
   void onAmountInput(String text) {
     sellAmountText.value = text;
     _debounce?.cancel();
+    if (sellAmountRaw == BigInt.zero) {
+      priceResult.value = null;
+      lastError.value = null;
+      _priceSeq++;
+      return;
+    }
     _debounce =
         Timer(const Duration(milliseconds: 400), _fetchPriceIfReady);
   }
