@@ -12,7 +12,7 @@ import '../../../services/wallet/swap/remote_swap_config.dart';
 import '../../../services/wallet/swap/swap_config_service.dart';
 import '../../../services/wallet/swap/swap_models.dart';
 import '../../../services/wallet/swap/swap_provider.dart';
-import '../../../services/wallet/swap/zerox_provider.dart';
+import '../../../services/wallet/swap/backend_quote_provider.dart';
 import '../../../services/wallet/wallet_models.dart';
 import '../../../services/wallet/wallet_key.dart';
 import '../send/totp_verify_dialog.dart';
@@ -30,10 +30,15 @@ class SwapLogic extends GetxController {
   final lastError = Rxn<SwapException>();
   final needsApproval = Rxn<bool>();
   final slippageBps = 50.obs;
-  final providerId = 'zerox'.obs;
+  // 'best' = server-side aggregated best quote across all configured aggregators.
+  final providerId = 'best'.obs;
+
+  /// Whether the backend has supplied a 0x API key. Drives the "未配置" banner.
+  /// The key is never baked into the app — it comes from /wallet/swap_config.
+  final swapConfigured = false.obs;
 
   late final Map<String, SwapProvider> providers = {
-    'zerox': ZeroExProvider(),
+    'best': BackendQuoteProvider(),
   };
 
   Timer? _debounce;
@@ -48,6 +53,18 @@ class SwapLogic extends GetxController {
   SwapProvider get activeProvider => providers[providerId.value]!;
 
   RemoteSwapConfig get _config => SwapConfigService.to.current;
+
+  @override
+  void onInit() {
+    super.onInit();
+    // Swap is "configured" when the backend delivered swap config with at least
+    // one chain. Aggregator keys live server-side, so the client can no longer
+    // gate on a key; it gates on whether the backend served usable config.
+    swapConfigured.value = _config.chains.isNotEmpty;
+    SwapConfigService.to.fetchAndCache().then((cfg) {
+      if (cfg != null) swapConfigured.value = cfg.chains.isNotEmpty;
+    });
+  }
 
   String get takerAddress {
     final acc = wallet.selectedAccount.value;

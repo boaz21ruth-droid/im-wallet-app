@@ -80,18 +80,19 @@ class SwapView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (kZeroxApiKey.isEmpty)
-              Container(
-                margin: EdgeInsets.only(bottom: 12.h),
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: Colors.red.withAlpha(20),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Text('Swap 未配置，请联系运营',
-                    style: TextStyle(
-                        color: Colors.red[700], fontSize: 13.sp)),
-              ),
+            Obx(() => logic.swapConfigured.value
+                ? const SizedBox.shrink()
+                : Container(
+                    margin: EdgeInsets.only(bottom: 12.h),
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withAlpha(20),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Text('Swap 未配置，请联系运营',
+                        style: TextStyle(
+                            color: Colors.red[700], fontSize: 13.sp)),
+                  )),
             _buildChainChip(context, logic),
             SizedBox(height: 16.h),
             _SellCard(logic: logic),
@@ -450,6 +451,24 @@ class _QuoteSummary extends StatelessWidget {
     );
   }
 
+  // Quotes are aggregated server-side; the app shows which aggregator won.
+  static String _providerLabel(String id) {
+    switch (id) {
+      case 'zerox':
+        return '0x';
+      case 'oneinch':
+        return '1inch';
+      case 'okx':
+        return 'OKX DEX';
+      case 'paraswap':
+        return 'Paraswap';
+      case 'uniswap':
+        return 'Uniswap';
+      default:
+        return id;
+    }
+  }
+
   Widget _providerRow() {
     final logic = Get.find<SwapLogic>();
     return Padding(
@@ -459,29 +478,14 @@ class _QuoteSummary extends StatelessWidget {
           Text('报价方',
               style: TextStyle(fontSize: 13.sp, color: Styles.c_8E9AB0)),
           const Spacer(),
-          DropdownButton<String>(
-            value: logic.providerId.value,
-            isDense: true,
-            underline: const SizedBox.shrink(),
-            items: const [
-              DropdownMenuItem(value: 'zerox', child: Text('0x')),
-              DropdownMenuItem(
-                  value: 'oneinch_disabled',
-                  enabled: false,
-                  child: Text('1inch（即将开放）')),
-              DropdownMenuItem(
-                  value: 'okx_disabled',
-                  enabled: false,
-                  child: Text('OKX DEX（即将开放）')),
-              DropdownMenuItem(
-                  value: 'uniswap_disabled',
-                  enabled: false,
-                  child: Text('Uniswap（即将开放）')),
-            ],
-            onChanged: (v) {
-              if (v == 'zerox') logic.providerId.value = v!;
-            },
-          ),
+          Obx(() {
+            final winner = logic.priceResult.value?.providerId;
+            final label = (winner == null || winner.isEmpty || winner == 'best')
+                ? '最佳价格'
+                : '最佳价格 · ${_providerLabel(winner)}';
+            return Text(label,
+                style: TextStyle(fontSize: 13.sp, color: Styles.c_0C1C33));
+          }),
         ],
       ),
     );

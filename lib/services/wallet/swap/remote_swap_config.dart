@@ -8,12 +8,13 @@ import 'swap_config.dart';
 import '../chain_config.dart' as cc;
 
 class RemoteSwapConfig {
-  final ZeroExRemoteConfig zerox;
+  // Aggregator credentials are NOT part of this DTO: quote aggregation and API
+  // keys live server-side in im-business. The client only needs per-chain RPCs,
+  // fee recipient, router allow-list, and limits.
   final Map<String, RemoteChainConfig> chains;
   final RemoteLimits limits;
 
   const RemoteSwapConfig({
-    required this.zerox,
     required this.chains,
     required this.limits,
   });
@@ -32,11 +33,6 @@ class RemoteSwapConfig {
       );
     }
     return RemoteSwapConfig(
-      zerox: ZeroExRemoteConfig(
-        apiKey: kZeroxApiKey,
-        apiBase: 'https://api.0x.org',
-        version: 'v2',
-      ),
       chains: defaultChains,
       limits: const RemoteLimits(
         largeAmountUsdThreshold: 10000,
@@ -47,15 +43,10 @@ class RemoteSwapConfig {
   }
 
   factory RemoteSwapConfig.fromJson(Map<String, dynamic> json) {
-    final providers =
-        (json['providers'] as Map<String, dynamic>?) ?? const {};
-    final zeroxJson =
-        (providers['zerox'] as Map<String, dynamic>?) ?? const {};
     final chainsJson = (json['chains'] as Map<String, dynamic>?) ?? const {};
     final limitsJson = (json['limits'] as Map<String, dynamic>?) ?? const {};
 
     return RemoteSwapConfig(
-      zerox: ZeroExRemoteConfig.fromJson(zeroxJson),
       chains: chainsJson.map(
         (k, v) => MapEntry(
           k,
@@ -67,7 +58,6 @@ class RemoteSwapConfig {
   }
 
   Map<String, dynamic> toJson() => {
-        'providers': {'zerox': zerox.toJson()},
         'chains': chains.map((k, v) => MapEntry(k, v.toJson())),
         'limits': limits.toJson(),
       };
@@ -78,13 +68,6 @@ class RemoteSwapConfig {
   RemoteSwapConfig withDefaultsFallback() {
     final defaults = RemoteSwapConfig.fromDefaults();
     return RemoteSwapConfig(
-      zerox: ZeroExRemoteConfig(
-        apiKey: zerox.apiKey.isNotEmpty ? zerox.apiKey : defaults.zerox.apiKey,
-        apiBase:
-            zerox.apiBase.isNotEmpty ? zerox.apiBase : defaults.zerox.apiBase,
-        version:
-            zerox.version.isNotEmpty ? zerox.version : defaults.zerox.version,
-      ),
       chains: {
         for (final key in kZeroxSupportedChains)
           key: chains[key] ?? defaults.chains[key]!,
@@ -92,31 +75,6 @@ class RemoteSwapConfig {
       limits: limits,
     );
   }
-}
-
-class ZeroExRemoteConfig {
-  final String apiKey;
-  final String apiBase;
-  final String version;
-
-  const ZeroExRemoteConfig({
-    required this.apiKey,
-    required this.apiBase,
-    required this.version,
-  });
-
-  factory ZeroExRemoteConfig.fromJson(Map<String, dynamic> json) =>
-      ZeroExRemoteConfig(
-        apiKey: (json['apiKey'] as String?) ?? '',
-        apiBase: (json['apiBase'] as String?) ?? 'https://api.0x.org',
-        version: (json['version'] as String?) ?? 'v2',
-      );
-
-  Map<String, dynamic> toJson() => {
-        'apiKey': apiKey,
-        'apiBase': apiBase,
-        'version': version,
-      };
 }
 
 class RemoteChainConfig {
