@@ -431,9 +431,46 @@ class _QuoteSummary extends StatelessWidget {
           if (feeAmt != null)
             _row('平台费',
                 '0.30% (${_formatBigInt(feeAmt, buy.decimals)} ${buy.symbol})'),
+          if (logic.allPrices.length > 1) ..._comparisonRows(buy),
         ],
       );
     });
+  }
+
+  // Per-aggregator comparison. Winner (index 0) is checked + bold; others grey.
+  List<Widget> _comparisonRows(SwapToken buy) {
+    final list = logic.allPrices;
+    return [
+      Padding(
+        padding: EdgeInsets.only(top: 8.h, bottom: 2.h),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: Text('比较 ${list.length} 家报价',
+              style: TextStyle(fontSize: 12.sp, color: Styles.c_8E9AB0)),
+        ),
+      ),
+      for (var i = 0; i < list.length; i++)
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: 2.h),
+          child: Row(
+            children: [
+              Icon(i == 0 ? Icons.check_circle : Icons.circle_outlined,
+                  size: 13.w, color: i == 0 ? Styles.c_0089FF : Styles.c_8E9AB0),
+              SizedBox(width: 6.w),
+              Text(_providerLabel(list[i].providerId),
+                  style: TextStyle(fontSize: 12.sp, color: Styles.c_0C1C33)),
+              const Spacer(),
+              Text(
+                  '${_formatBigInt(list[i].buyAmount, buy.decimals)} ${buy.symbol}',
+                  style: TextStyle(
+                      fontSize: 12.sp,
+                      color: i == 0 ? Styles.c_0C1C33 : Styles.c_8E9AB0,
+                      fontWeight:
+                          i == 0 ? FontWeight.w600 : FontWeight.w400)),
+            ],
+          ),
+        ),
+    ];
   }
 
   Widget _row(String label, String value) {
@@ -456,10 +493,8 @@ class _QuoteSummary extends StatelessWidget {
     switch (id) {
       case 'zerox':
         return '0x';
-      case 'oneinch':
-        return '1inch';
-      case 'okx':
-        return 'OKX DEX';
+      case 'kyberswap':
+        return 'KyberSwap';
       case 'paraswap':
         return 'Paraswap';
       case 'uniswap':

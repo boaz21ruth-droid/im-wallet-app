@@ -26,6 +26,8 @@ class SwapLogic extends GetxController {
   final buyToken = Rxn<SwapToken>();
   final sellAmountText = ''.obs;
   final priceResult = Rxn<SwapPriceResult>();
+  /// Ranked per-aggregator quotes (best first) for the comparison UI.
+  final allPrices = <SwapPriceResult>[].obs;
   final isFetchingPrice = false.obs;
   final lastError = Rxn<SwapException>();
   final needsApproval = Rxn<bool>();
@@ -286,6 +288,9 @@ class SwapLogic extends GetxController {
       final r = await activeProvider.getPrice(req);
       if (seq != _priceSeq) return; // stale; another call superseded
       priceResult.value = r;
+      final ap = activeProvider;
+      allPrices.assignAll(
+          ap is BackendQuoteProvider ? ap.lastComparison : const []);
       // Cheap follow-up: one allowance RPC call (or instant for native) plus
       // a gas-price snapshot for the pre-flight "Gas 不足" check.
       // TODO(task4): refresh needsApproval after successful approve
@@ -476,9 +481,24 @@ class SwapLogic extends GetxController {
         }
       }
 
-      // Step 2.5: Approve if needed
+      // Step 2.5: Approve if needed. A provider may surface approval info
+      // unconditionally for ERC20 sells (e.g. 1inch can't tell us the live
+      // allowance), so re-check the on-chain allowance against the winning
+      // provider's spender and skip a redundant approve when already covered.
       if (quote.approval != null) {
         final approval = quote.approval!;
+        var approvalNeeded = true;
+        try {
+          final current = await svc.getAllowance(
+            owner: taker,
+            spender: approval.spender,
+            tokenContract: approval.tokenAddress,
+          );
+          approvalNeeded = current < approval.requiredAmount;
+        } catch (_) {
+          // If the allowance check fails, fall through and approve to be safe.
+        }
+        if (approvalNeeded) {
         try {
           final approveTx = await svc.sendApprove(
             senderKey: evmKey,
@@ -508,6 +528,7 @@ class SwapLogic extends GetxController {
         } on SwapException catch (e) {
           return SwapExecutionResult.failed('重新报价失败: ${e.message}');
         }
+        } // approvalNeeded
       }
 
       // Step 2.7: price-drift check. Threshold from backend config (default 1%).

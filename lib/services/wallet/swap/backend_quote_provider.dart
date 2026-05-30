@@ -16,6 +16,10 @@ import 'swap_provider.dart';
 class BackendQuoteProvider implements SwapProvider {
   final http.Client _client;
 
+  /// The full ranked list (best first) from the most recent [getPrice] call,
+  /// for the UI's aggregator comparison view. Updated on every price fetch.
+  List<SwapPriceResult> lastComparison = const [];
+
   BackendQuoteProvider({http.Client? client}) : _client = client ?? http.Client();
 
   @override
@@ -31,13 +35,15 @@ class BackendQuoteProvider implements SwapProvider {
         'chainKey': req.chainKey,
         'sellToken': req.sellToken.isNative ? 'native' : req.sellToken.contractAddress!,
         'buyToken': req.buyToken.isNative ? 'native' : req.buyToken.contractAddress!,
+        'sellDecimals': req.sellToken.decimals.toString(),
+        'buyDecimals': req.buyToken.decimals.toString(),
         'sellAmount': req.sellAmount.toString(),
         'taker': req.takerAddress,
         'slippageBps': req.slippageBps.toString(),
       };
 
-  /// GET `/wallet/{path}`; returns the `data.best` object or throws SwapException.
-  Future<Map<String, dynamic>> _getBest(String path, SwapQuoteRequest req) async {
+  /// GET `/wallet/{path}`; returns the `data` object ({best, all}) or throws.
+  Future<Map<String, dynamic>> _getData(String path, SwapQuoteRequest req) async {
     final token = DataSp.chatToken ?? '';
     final uri = Uri.parse('${Config.appAuthUrl}/wallet/$path')
         .replace(queryParameters: _params(req));
@@ -60,12 +66,18 @@ class BackendQuoteProvider implements SwapProvider {
       throw _mapErr(errCode, (body['errMsg'] as String?) ?? 'swap error');
     }
     final data = body['data'] as Map<String, dynamic>?;
-    final best = data?['best'] as Map<String, dynamic>?;
-    if (best == null) {
+    if (data == null || data['best'] is! Map<String, dynamic>) {
       throw const SwapException(SwapErrorKind.noLiquidity, 'no quote');
     }
-    return best;
+    return data;
   }
+
+  SwapPriceResult _priceFromJson(Map<String, dynamic> j) => SwapPriceResult(
+        buyAmount: BigInt.parse(j['buyAmount'] as String),
+        gasEstimate: _tryBig(j['gasEstimate']),
+        fees: _parseFees(j['fees']),
+        providerId: (j['provider'] as String?) ?? id,
+      );
 
   // Mirrors resp.CodeSwap* in im-business pkg/resp.
   SwapException _mapErr(int code, String msg) {
@@ -83,18 +95,18 @@ class BackendQuoteProvider implements SwapProvider {
 
   @override
   Future<SwapPriceResult> getPrice(SwapQuoteRequest req) async {
-    final best = await _getBest('price', req);
-    return SwapPriceResult(
-      buyAmount: BigInt.parse(best['buyAmount'] as String),
-      gasEstimate: _tryBig(best['gasEstimate']),
-      fees: _parseFees(best['fees']),
-      providerId: (best['provider'] as String?) ?? id,
-    );
+    final data = await _getData('price', req);
+    final all = (data['all'] as List?) ?? const [];
+    lastComparison = all
+        .whereType<Map<String, dynamic>>()
+        .map(_priceFromJson)
+        .toList(growable: false);
+    return _priceFromJson(data['best'] as Map<String, dynamic>);
   }
 
   @override
   Future<SwapQuote> getQuote(SwapQuoteRequest req) async {
-    final best = await _getBest('quote', req);
+    final best = (await _getData('quote', req))['best'] as Map<String, dynamic>;
     ApprovalIssue? approval;
     final a = best['approval'];
     if (a is Map<String, dynamic>) {
