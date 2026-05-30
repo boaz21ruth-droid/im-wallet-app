@@ -12,12 +12,24 @@ buildscript {
 allprojects {
     afterEvaluate {
         if (project.hasProperty("android")) {
-            android { compileSdk = 35 }
+            android {
+                compileSdk = 36
+                if (!it.hasProperty("namespace") || it.namespace == null) {
+                    namespace = project.group.toString()
+                }
+            }
         }
     }
     repositories {
         google()
         mavenCentral()
+    }
+    configurations.all {
+        resolutionStrategy {
+            force 'org.jetbrains.kotlin:kotlin-stdlib:2.1.21'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.21'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.21'
+        }
     }
 }
 
@@ -31,17 +43,6 @@ subprojects {
 
 subprojects {
     project.evaluationDependsOn(":app")
-}
-
-configurations.all {
-    resolutionStrategy {
-        force 'androidx.core:core-ktx:1.12.0'
-        force 'androidx.core:core:1.12.0'
-        force 'androidx.activity:activity:1.8.2'
-        force 'androidx.activity:activity-ktx:1.8.2'
-        force 'androidx.fragment:fragment:1.6.2'
-        force 'androidx.fragment:fragment-ktx:1.6.2'
-    }
 }
 
 tasks.register("clean", Delete) {

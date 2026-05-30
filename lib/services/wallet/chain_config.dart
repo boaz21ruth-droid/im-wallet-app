@@ -42,10 +42,12 @@ const chains = <String, ChainConfig>{
   'eth': ChainConfig(
     chainId: 1,
     rpcs: [
-      'https://cloudflare-eth.com',        // ~50 req/s, highly reliable
-      'https://eth.llamarpc.com',           // ~25 req/s
-      'https://rpc.ankr.com/eth',           // ~30 req/s
-      'https://ethereum.publicnode.com',    // ~50 req/s
+      // TEMP(anvil-fork): local mainnet fork for swap testing — REVERT BEFORE COMMIT
+      'http://10.0.2.2:8545',               // anvil fork (Android emulator → host)
+      // 'https://cloudflare-eth.com',        // ~50 req/s, highly reliable
+      // 'https://eth.llamarpc.com',           // ~25 req/s
+      // 'https://rpc.ankr.com/eth',           // ~30 req/s
+      // 'https://ethereum.publicnode.com',    // ~50 req/s
     ],
     explorer: 'https://api.etherscan.io/api',
     txExplorerBase: 'https://etherscan.io/tx/',

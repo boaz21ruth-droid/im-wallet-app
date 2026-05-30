@@ -153,6 +153,8 @@ class LoginLogic extends GetxController with GetTickerProviderStateMixin {
 
         Get.find<CacheController>().resetCache();
         AppNavigator.startMain(conversations: result);
+      } else if (!isClosed) {
+        _onChanged();
       }
     });
   }
