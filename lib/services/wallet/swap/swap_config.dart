@@ -1,10 +1,8 @@
 // lib/services/wallet/swap/swap_config.dart
 
-/// 0x Swap API v2 key. Injected at compile time via:
-///   fvm flutter run --dart-define=ZEROX_API_KEY=xxx
-/// Empty string in non-prod builds; the UI shows a "未配置" banner when empty.
-const String kZeroxApiKey =
-    String.fromEnvironment('ZEROX_API_KEY', defaultValue: '');
+// The 0x Swap API key is NOT baked into the app. It is served at runtime by
+// im-business via GET /wallet/swap_config and read through SwapConfigService.
+// The UI shows a "未配置" banner when the backend hasn't supplied a key.
 
 /// Platform fee in basis points, applied via 0x `swapFeeBps`.
 const int kSwapFeeBps = 30; // 0.30%
