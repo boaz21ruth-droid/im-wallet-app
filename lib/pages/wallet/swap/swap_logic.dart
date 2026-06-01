@@ -374,6 +374,11 @@ class SwapLogic extends GetxController {
       if (seq != _priceSeq) return;
       lastError.value = e;
       bridgeQuote.value = null;
+    } catch (e) {
+      // Never let a parse/transport error crash the isolate.
+      if (seq != _priceSeq) return;
+      lastError.value = SwapException(SwapErrorKind.unknown, '$e');
+      bridgeQuote.value = null;
     } finally {
       if (seq == _priceSeq) isFetchingPrice.value = false;
     }
@@ -748,6 +753,158 @@ class SwapLogic extends GetxController {
     }
   }
 
+  /// Cross-chain execution: fetch a fresh bridge quote, gate (TOTP / large
+  /// amount), approve the source token if needed, then broadcast the SOURCE-chain
+  /// tx. Returns immediately — delivery on the dest chain is tracked separately
+  /// via bridge status polling. Mirrors [executeSwap] but for the bridge path.
+  Future<SwapExecutionResult> executeBridge({required String password}) async {
+    final entryRoute = Get.routing.current;
+    bool routeStillActive() => Get.routing.current == entryRoute;
+
+    final sell = sellToken.value;
+    final buy = buyToken.value;
+    final amt = sellAmountRaw;
+    final taker = takerAddress;
+    final fromChain = swapChainKey.value;
+    final toChain = destChainKey.value;
+    if (sell == null || buy == null || amt == BigInt.zero || taker.isEmpty || toChain == null) {
+      return const SwapExecutionResult.failed('内部错误：缺少参数');
+    }
+    final account = wallet.selectedAccount.value;
+    if (account == null) return const SwapExecutionResult.failed('未选择账户');
+    final config = chains[fromChain];
+    if (config == null) return const SwapExecutionResult.failed('链配置缺失');
+    final toAddr = account.addresses[toChain] ?? taker;
+
+    Future<BridgeQuote> freshQuote() => _bridge.quote(
+          fromChain: fromChain,
+          toChain: toChain,
+          fromToken: sell,
+          toToken: buy,
+          amount: amt,
+          fromAddress: taker,
+          toAddress: toAddr,
+          slippageBps: slippageBps.value,
+        );
+
+    BridgeQuote q;
+    try {
+      q = await freshQuote();
+    } on SwapException catch (e) {
+      return SwapExecutionResult.failed('报价失败: ${e.message}');
+    }
+    if (!routeStillActive()) return const SwapExecutionResult.failed('已取消（页面已切换）');
+
+    final svc = EvmService(config, fromChain, rpcsOverride: _swapConfigRpcs(fromChain));
+    EthPrivateKey? evmKey;
+    try {
+      evmKey = await wallet.vault.withMnemonic(password, (mBytes) async {
+        final seed = WalletKey.mnemonicToSeed(mBytes);
+        try {
+          return WalletKey.deriveEVMKey(seed, account.index);
+        } finally {
+          seed.fillRange(0, seed.length, 0);
+        }
+      });
+    } catch (e) {
+      svc.dispose();
+      return SwapExecutionResult.failed('密码错误或解密失败');
+    }
+    if (evmKey == null) {
+      svc.dispose();
+      return const SwapExecutionResult.failed('无法派生密钥');
+    }
+
+    try {
+      final totpEnabled = await TotpService.status();
+      if (!routeStillActive()) return const SwapExecutionResult.failed('已取消（页面已切换）');
+      if (totpEnabled) {
+        final ctx = Get.context;
+        if (ctx == null) return const SwapExecutionResult.failed('上下文丢失');
+        // ignore: use_build_context_synchronously
+        final ok = await showTotpVerifyDialog(ctx);
+        if (!ok) return const SwapExecutionResult.failed('已取消');
+        if (!routeStillActive()) return const SwapExecutionResult.failed('已取消（页面已切换）');
+      }
+
+      final usdValue = _estimatedUsdValue(sell, amt);
+      if (usdValue != null && usdValue > _config.limits.largeAmountUsdThreshold) {
+        final ctx = Get.context;
+        if (ctx == null) return const SwapExecutionResult.failed('上下文丢失');
+        final accepted = await _confirmLargeAmount(
+          // ignore: use_build_context_synchronously
+          ctx,
+          usdValue: usdValue,
+          sell: sell,
+          buy: buy,
+          sellAmount: amt,
+          buyAmount: q.toAmount,
+        );
+        if (!accepted) return const SwapExecutionResult.failed('已取消（大额确认）');
+        if (!routeStillActive()) return const SwapExecutionResult.failed('已取消（页面已切换）');
+      }
+
+      // Approve the source token to the bridge spender if needed.
+      if (q.approval != null) {
+        final approval = q.approval!;
+        var approvalNeeded = true;
+        try {
+          final current = await svc.getAllowance(
+            owner: taker,
+            spender: approval.spender,
+            tokenContract: approval.tokenAddress,
+          );
+          approvalNeeded = current < approval.requiredAmount;
+        } catch (_) {}
+        if (approvalNeeded) {
+          try {
+            final approveTx = await svc.sendApprove(
+              senderKey: evmKey,
+              tokenContract: approval.tokenAddress,
+              spender: approval.spender,
+              amount: _maxUint256,
+            );
+            final ok = await svc.waitForReceipt(approveTx,
+                timeout: Duration(seconds: _config.limits.approveReceiptTimeoutSeconds));
+            if (!ok) return SwapExecutionResult.failed('授权交易未确认，请稍后重试');
+          } catch (e) {
+            return SwapExecutionResult.failed('授权失败: $e');
+          }
+          if (!routeStillActive()) return const SwapExecutionResult.failed('已取消（页面已切换）');
+          try {
+            q = await freshQuote(); // calldata may shift after approve
+          } on SwapException catch (e) {
+            return SwapExecutionResult.failed('重新报价失败: ${e.message}');
+          }
+        }
+      }
+
+      final txHash = await svc.sendRaw(
+        senderKey: evmKey,
+        to: q.to,
+        dataHex: q.data,
+        value: q.value,
+        gasLimit: q.gas,
+        gasPrice: q.gasPrice,
+      );
+      wallet.refreshBalances();
+      return SwapExecutionResult.bridgeSubmitted(
+        txHash: txHash,
+        chainKey: fromChain,
+        toChain: toChain,
+        tool: q.tool,
+      );
+    } on SwapException catch (e) {
+      return SwapExecutionResult.failed('跨链失败: ${e.message}');
+    } on ArgumentError {
+      return const SwapExecutionResult.failed('报价数据无效');
+    } catch (e) {
+      return SwapExecutionResult.failed('跨链失败: $e');
+    } finally {
+      svc.dispose();
+    }
+  }
+
   /// Returns the USD-equivalent value of `amount` of `sell`, or null when no
   /// price feed is loaded for that token.
   double? _estimatedUsdValue(SwapToken sell, BigInt amount) {
@@ -849,10 +1006,23 @@ class SwapExecutionResult {
   final String? txHash;
   final String? chainKey;
   final String? error;
+  // Cross-chain only: present on a bridge submission so the UI can track delivery.
+  final String? toChain;
+  final String? tool;
 
   const SwapExecutionResult.success({required String this.txHash, required String this.chainKey})
-      : ok = true, error = null;
+      : ok = true, error = null, toChain = null, tool = null;
+
+  /// Source-chain bridge tx broadcast; delivery is tracked via bridge status.
+  const SwapExecutionResult.bridgeSubmitted({
+    required String this.txHash,
+    required String this.chainKey,
+    required String this.toChain,
+    required String this.tool,
+  }) : ok = true, error = null;
 
   const SwapExecutionResult.failed(String this.error)
-      : ok = false, txHash = null, chainKey = null;
+      : ok = false, txHash = null, chainKey = null, toChain = null, tool = null;
+
+  bool get isBridge => toChain != null;
 }

@@ -11,6 +11,7 @@ import '../../../services/wallet/swap/swap_models.dart';
 import '../../../services/wallet/wallet_models.dart';
 import 'slippage_sheet.dart';
 import 'swap_logic.dart';
+import 'swap_bridge_progress_view.dart';
 import 'swap_result_view.dart';
 import 'token_picker_sheet.dart';
 
@@ -648,7 +649,8 @@ class _MainButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       final text = _resolveText(logic);
-      final enabled = text == 'Swap' || text.startsWith('授权');
+      final enabled =
+          text == 'Swap' || text == '跨链兑换' || text.startsWith('授权');
       return SizedBox(
         width: double.infinity,
         height: 52.h,
@@ -722,10 +724,12 @@ class _MainButton extends StatelessWidget {
           return '报价失败';
       }
     }
-    // Cross-chain: quote display only for now; execution is wired in M3, so keep
-    // the button disabled (text is neither 'Swap' nor '授权…').
     if (logic.isCrossChain) {
-      return logic.bridgeQuote.value == null ? '输入金额' : '跨链兑换';
+      if (logic.bridgeQuote.value == null) return '输入金额';
+      if (logic.needsApproval.value == true) {
+        return '授权 ${logic.sellToken.value!.symbol}';
+      }
+      return '跨链兑换';
     }
     if (logic.priceResult.value == null) return '输入金额';
     if (logic.needsApproval.value == true) {
@@ -755,14 +759,26 @@ class _PasswordSheetState extends State<_PasswordSheet> {
   Future<void> _submit() async {
     Get.back(); // close password sheet first
     EasyLoading.show(status: '提交中...');
-    final result = await widget.logic.executeSwap(password: _pwdCtrl.text);
+    final logic = widget.logic;
+    final result = logic.isCrossChain
+        ? await logic.executeBridge(password: _pwdCtrl.text)
+        : await logic.executeSwap(password: _pwdCtrl.text);
     EasyLoading.dismiss();
-    Get.off(() => SwapResultView(
-          success: result.ok,
-          txHash: result.txHash,
-          chainKey: result.chainKey,
-          errorMessage: result.error,
-        ));
+    if (result.isBridge && result.ok) {
+      Get.off(() => SwapBridgeProgressView(
+            sourceTxHash: result.txHash!,
+            fromChain: result.chainKey!,
+            toChain: result.toChain!,
+            tool: result.tool!,
+          ));
+    } else {
+      Get.off(() => SwapResultView(
+            success: result.ok,
+            txHash: result.txHash,
+            chainKey: result.chainKey,
+            errorMessage: result.error,
+          ));
+    }
   }
 
   @override
