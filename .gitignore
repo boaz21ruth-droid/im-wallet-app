@@ -14,6 +14,8 @@ ios/Pods/
 # Android generated
 android/local.properties
 android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+android/.gradle/
+android/.kotlin/
 
 # pubspec lock (keep for reproducible builds) — remove this line to ignore it
 # pubspec.lock
