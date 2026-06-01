@@ -11,6 +11,7 @@ import '../../../services/wallet/swap/swap_models.dart';
 import '../../../services/wallet/wallet_models.dart';
 import 'slippage_sheet.dart';
 import 'swap_logic.dart';
+import 'swap_bridge_progress_view.dart';
 import 'swap_result_view.dart';
 import 'token_picker_sheet.dart';
 
@@ -247,11 +248,10 @@ class _BuyCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       final t = logic.buyToken.value;
-      final priceR = logic.priceResult.value;
+      final amt = logic.displayBuyAmount;
       String amountStr = '';
-      if (priceR != null && t != null) {
-        amountStr =
-            _formatBigInt(priceR.buyAmount, t.decimals);
+      if (amt != null && t != null) {
+        amountStr = _formatBigInt(amt, t.decimals);
       }
       return _TokenCard(
         label: '获得',
@@ -261,6 +261,7 @@ class _BuyCard extends StatelessWidget {
         token: t,
         amountValue: amountStr,
         onAmountChanged: (_) {},
+        headerTrailing: _destChainChip(context, logic),
         onPickToken: () async {
           final picked = await showTokenPickerSheet(
               context, TokenPickerSide.buy);
@@ -269,6 +270,71 @@ class _BuyCard extends StatelessWidget {
         onMax: null,
       );
     });
+  }
+
+  // Destination-chain selector on the buy card. Default = source (same-chain);
+  // picking a different chain switches to cross-chain (bridge) mode.
+  Widget _destChainChip(BuildContext context, SwapLogic logic) {
+    final cfg = chains[logic.buyChainKey];
+    final label = '至 ${cfg?.name ?? logic.buyChainKey}';
+    return GestureDetector(
+      onTap: () => _showDestChainPicker(context, logic),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+        decoration: BoxDecoration(
+          color: logic.isCrossChain ? Styles.c_0089FF.withAlpha(25) : Styles.c_F8F9FA,
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Text(label,
+              style: TextStyle(
+                  fontSize: 12.sp,
+                  color: logic.isCrossChain ? Styles.c_0089FF : Styles.c_8E9AB0)),
+          Icon(Icons.keyboard_arrow_down,
+              size: 14.w,
+              color: logic.isCrossChain ? Styles.c_0089FF : Styles.c_8E9AB0),
+        ]),
+      ),
+    );
+  }
+
+  void _showDestChainPicker(BuildContext context, SwapLogic logic) {
+    // Options: same chain (source) + every other supported chain as a dest.
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Styles.c_FFFFFF,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 12.h),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: kZeroxSupportedChains.map((k) {
+              final cfg = chains[k];
+              if (cfg == null) return const SizedBox.shrink();
+              final isSource = k == logic.swapChainKey.value;
+              final selected = isSource
+                  ? !logic.isCrossChain
+                  : logic.destChainKey.value == k;
+              return ListTile(
+                title: Text(isSource ? '${cfg.name}（同链）' : cfg.name,
+                    style: TextStyle(fontSize: 15.sp)),
+                trailing: selected
+                    ? Icon(Icons.check_circle,
+                        color: Styles.c_0089FF, size: 20.w)
+                    : null,
+                onTap: () {
+                  logic.switchDestChain(isSource ? null : k);
+                  Get.back();
+                },
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -291,6 +357,7 @@ class _TokenCard extends StatelessWidget {
   final ValueChanged<String> onAmountChanged;
   final VoidCallback onPickToken;
   final VoidCallback? onMax;
+  final Widget? headerTrailing;
 
   const _TokenCard({
     required this.label,
@@ -302,6 +369,7 @@ class _TokenCard extends StatelessWidget {
     required this.onAmountChanged,
     required this.onPickToken,
     required this.onMax,
+    this.headerTrailing,
   });
 
   @override
@@ -322,6 +390,7 @@ class _TokenCard extends StatelessWidget {
                   style:
                       TextStyle(fontSize: 13.sp, color: Styles.c_8E9AB0)),
               const Spacer(),
+              if (headerTrailing != null) headerTrailing!,
               if (balanceText != null)
                 Text('余额: $balanceText',
                     style: TextStyle(
@@ -411,10 +480,33 @@ class _QuoteSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final r = logic.priceResult.value;
       final sell = logic.sellToken.value;
       final buy = logic.buyToken.value;
-      if (r == null || sell == null || buy == null) {
+      if (sell == null || buy == null) {
+        return const SizedBox.shrink();
+      }
+      // Cross-chain: show the bridge route instead of DEX rate/picker.
+      if (logic.isCrossChain) {
+        final q = logic.bridgeQuote.value;
+        if (q == null) return const SizedBox.shrink();
+        final eta = q.executionDurationSec <= 0
+            ? '—'
+            : q.executionDurationSec < 60
+                ? '~${q.executionDurationSec} 秒'
+                : '~${(q.executionDurationSec / 60).ceil()} 分钟';
+        return Column(
+          children: [
+            _row('跨链桥', 'LI.FI · ${q.tool}'),
+            _row('预计到账', eta),
+            _row('最少获得',
+                '${_formatBigInt(q.toAmountMin, buy.decimals)} ${buy.symbol}'),
+            _row('滑点',
+                '${(logic.slippageBps.value / 100).toStringAsFixed(2)}%'),
+          ],
+        );
+      }
+      final r = logic.priceResult.value;
+      if (r == null) {
         return const SizedBox.shrink();
       }
       final sellAmt = logic.sellAmountRaw;
@@ -425,50 +517,93 @@ class _QuoteSummary extends StatelessWidget {
       final feeAmt = r.fees.integratorFeeAmount;
       return Column(
         children: [
-          _providerRow(),
           _row('汇率', rate),
           _row('滑点', '${(logic.slippageBps.value / 100).toStringAsFixed(2)}%'),
           if (feeAmt != null)
             _row('平台费',
                 '0.30% (${_formatBigInt(feeAmt, buy.decimals)} ${buy.symbol})'),
-          if (logic.allPrices.length > 1) ..._comparisonRows(buy),
+          if (logic.allPrices.isNotEmpty) ..._providerPicker(buy),
         ],
       );
     });
   }
 
-  // Per-aggregator comparison. Winner (index 0) is checked + bold; others grey.
-  List<Widget> _comparisonRows(SwapToken buy) {
+  // Provider selector. Default = 自动 (best). Each row is tappable; the active
+  // choice gets a filled radio, and the best aggregator is tagged 最优.
+  List<Widget> _providerPicker(SwapToken buy) {
     final list = logic.allPrices;
+    final selected = logic.selectedProviderId.value; // null = auto
+
+    Widget tile({
+      required bool active,
+      required String label,
+      String? amount,
+      bool isBest = false,
+      required VoidCallback onTap,
+    }) =>
+        InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 5.h),
+            child: Row(
+              children: [
+                Icon(
+                    active
+                        ? Icons.radio_button_checked
+                        : Icons.radio_button_unchecked,
+                    size: 15.w,
+                    color: active ? Styles.c_0089FF : Styles.c_8E9AB0),
+                SizedBox(width: 6.w),
+                Text(label,
+                    style: TextStyle(
+                        fontSize: 12.sp,
+                        color: Styles.c_0C1C33,
+                        fontWeight:
+                            active ? FontWeight.w600 : FontWeight.w400)),
+                if (isBest) ...[
+                  SizedBox(width: 4.w),
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 4.w, vertical: 1.h),
+                    decoration: BoxDecoration(
+                        color: Styles.c_0089FF.withAlpha(25),
+                        borderRadius: BorderRadius.circular(4.r)),
+                    child: Text('最优',
+                        style: TextStyle(
+                            fontSize: 9.sp, color: Styles.c_0089FF)),
+                  ),
+                ],
+                const Spacer(),
+                if (amount != null)
+                  Text(amount,
+                      style: TextStyle(
+                          fontSize: 12.sp, color: Styles.c_8E9AB0)),
+              ],
+            ),
+          ),
+        );
+
     return [
       Padding(
         padding: EdgeInsets.only(top: 8.h, bottom: 2.h),
         child: Align(
           alignment: Alignment.centerLeft,
-          child: Text('比较 ${list.length} 家报价',
+          child: Text('报价方',
               style: TextStyle(fontSize: 12.sp, color: Styles.c_8E9AB0)),
         ),
       ),
+      tile(
+        active: selected == null,
+        label: '自动（最优价格）',
+        onTap: () => logic.selectProvider(null),
+      ),
       for (var i = 0; i < list.length; i++)
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 2.h),
-          child: Row(
-            children: [
-              Icon(i == 0 ? Icons.check_circle : Icons.circle_outlined,
-                  size: 13.w, color: i == 0 ? Styles.c_0089FF : Styles.c_8E9AB0),
-              SizedBox(width: 6.w),
-              Text(_providerLabel(list[i].providerId),
-                  style: TextStyle(fontSize: 12.sp, color: Styles.c_0C1C33)),
-              const Spacer(),
-              Text(
-                  '${_formatBigInt(list[i].buyAmount, buy.decimals)} ${buy.symbol}',
-                  style: TextStyle(
-                      fontSize: 12.sp,
-                      color: i == 0 ? Styles.c_0C1C33 : Styles.c_8E9AB0,
-                      fontWeight:
-                          i == 0 ? FontWeight.w600 : FontWeight.w400)),
-            ],
-          ),
+        tile(
+          active: selected == list[i].providerId,
+          label: _providerLabel(list[i].providerId),
+          amount: '${_formatBigInt(list[i].buyAmount, buy.decimals)} ${buy.symbol}',
+          isBest: i == 0,
+          onTap: () => logic.selectProvider(list[i].providerId),
         ),
     ];
   }
@@ -504,27 +639,6 @@ class _QuoteSummary extends StatelessWidget {
     }
   }
 
-  Widget _providerRow() {
-    final logic = Get.find<SwapLogic>();
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 4.h),
-      child: Row(
-        children: [
-          Text('报价方',
-              style: TextStyle(fontSize: 13.sp, color: Styles.c_8E9AB0)),
-          const Spacer(),
-          Obx(() {
-            final winner = logic.priceResult.value?.providerId;
-            final label = (winner == null || winner.isEmpty || winner == 'best')
-                ? '最佳价格'
-                : '最佳价格 · ${_providerLabel(winner)}';
-            return Text(label,
-                style: TextStyle(fontSize: 13.sp, color: Styles.c_0C1C33));
-          }),
-        ],
-      ),
-    );
-  }
 }
 
 class _MainButton extends StatelessWidget {
@@ -535,7 +649,8 @@ class _MainButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       final text = _resolveText(logic);
-      final enabled = text == 'Swap' || text.startsWith('授权');
+      final enabled =
+          text == 'Swap' || text == '跨链兑换' || text.startsWith('授权');
       return SizedBox(
         width: double.infinity,
         height: 52.h,
@@ -609,6 +724,13 @@ class _MainButton extends StatelessWidget {
           return '报价失败';
       }
     }
+    if (logic.isCrossChain) {
+      if (logic.bridgeQuote.value == null) return '输入金额';
+      if (logic.needsApproval.value == true) {
+        return '授权 ${logic.sellToken.value!.symbol}';
+      }
+      return '跨链兑换';
+    }
     if (logic.priceResult.value == null) return '输入金额';
     if (logic.needsApproval.value == true) {
       return '授权 ${logic.sellToken.value!.symbol}';
@@ -637,14 +759,26 @@ class _PasswordSheetState extends State<_PasswordSheet> {
   Future<void> _submit() async {
     Get.back(); // close password sheet first
     EasyLoading.show(status: '提交中...');
-    final result = await widget.logic.executeSwap(password: _pwdCtrl.text);
+    final logic = widget.logic;
+    final result = logic.isCrossChain
+        ? await logic.executeBridge(password: _pwdCtrl.text)
+        : await logic.executeSwap(password: _pwdCtrl.text);
     EasyLoading.dismiss();
-    Get.off(() => SwapResultView(
-          success: result.ok,
-          txHash: result.txHash,
-          chainKey: result.chainKey,
-          errorMessage: result.error,
-        ));
+    if (result.isBridge && result.ok) {
+      Get.off(() => SwapBridgeProgressView(
+            sourceTxHash: result.txHash!,
+            fromChain: result.chainKey!,
+            toChain: result.toChain!,
+            tool: result.tool!,
+          ));
+    } else {
+      Get.off(() => SwapResultView(
+            success: result.ok,
+            txHash: result.txHash,
+            chainKey: result.chainKey,
+            errorMessage: result.error,
+          ));
+    }
   }
 
   @override

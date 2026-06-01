@@ -20,6 +20,11 @@ class BackendQuoteProvider implements SwapProvider {
   /// for the UI's aggregator comparison view. Updated on every price fetch.
   List<SwapPriceResult> lastComparison = const [];
 
+  /// When set, price/quote return this aggregator's entry from the `all` list
+  /// instead of the best. null = auto (best). Falls back to best if the chosen
+  /// provider isn't available for the current pair/chain.
+  String? preferredProviderId;
+
   BackendQuoteProvider({http.Client? client}) : _client = client ?? http.Client();
 
   @override
@@ -93,6 +98,18 @@ class BackendQuoteProvider implements SwapProvider {
     }
   }
 
+  /// Returns the chosen entry from `data`: the [preferredProviderId]'s entry in
+  /// `all`, or `best` when auto / the choice is unavailable.
+  Map<String, dynamic> _pick(Map<String, dynamic> data) {
+    final best = data['best'] as Map<String, dynamic>;
+    final pref = preferredProviderId;
+    if (pref == null) return best;
+    for (final e in (data['all'] as List?) ?? const []) {
+      if (e is Map<String, dynamic> && e['provider'] == pref) return e;
+    }
+    return best;
+  }
+
   @override
   Future<SwapPriceResult> getPrice(SwapQuoteRequest req) async {
     final data = await _getData('price', req);
@@ -101,12 +118,12 @@ class BackendQuoteProvider implements SwapProvider {
         .whereType<Map<String, dynamic>>()
         .map(_priceFromJson)
         .toList(growable: false);
-    return _priceFromJson(data['best'] as Map<String, dynamic>);
+    return _priceFromJson(_pick(data));
   }
 
   @override
   Future<SwapQuote> getQuote(SwapQuoteRequest req) async {
-    final best = (await _getData('quote', req))['best'] as Map<String, dynamic>;
+    final best = _pick(await _getData('quote', req));
     ApprovalIssue? approval;
     final a = best['approval'];
     if (a is Map<String, dynamic>) {

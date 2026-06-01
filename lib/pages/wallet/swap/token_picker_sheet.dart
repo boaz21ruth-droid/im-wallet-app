@@ -30,7 +30,10 @@ class _TokenPickerSheet extends StatelessWidget {
   const _TokenPickerSheet({required this.logic, required this.side});
 
   List<SwapToken> _candidates() {
-    final chainKey = logic.swapChainKey.value;
+    // Buy side lives on the dest chain for cross-chain; sell side on the source.
+    final chainKey = side == TokenPickerSide.buy
+        ? logic.buyChainKey
+        : logic.swapChainKey.value;
     final cfg = chains[chainKey];
     if (cfg == null) return const [];
 
