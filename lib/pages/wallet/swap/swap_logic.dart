@@ -14,6 +14,9 @@ import '../../../services/wallet/swap/swap_models.dart';
 import '../../../services/wallet/swap/swap_provider.dart';
 import '../../../services/wallet/swap/backend_quote_provider.dart';
 import '../../../services/wallet/swap/bridge_service.dart';
+import '../../../services/wallet/swap/intent_service.dart';
+import '../../../services/wallet/swap/cow_order.dart';
+import '../../../services/wallet/eip712.dart';
 import '../../../services/wallet/wallet_models.dart';
 import '../../../services/wallet/wallet_key.dart';
 import '../send/totp_verify_dialog.dart';
@@ -48,12 +51,24 @@ class SwapLogic extends GetxController {
   bool get isCrossChain =>
       destChainKey.value != null && destChainKey.value != swapChainKey.value;
 
+  /// Intent (CoW) mode: gasless + MEV-protected, same-chain, on CoW chains only.
+  final intentMode = false.obs;
+  final intentQuote = Rxn<IntentQuote>();
+  final IntentService _intent = IntentService();
+
+  static const _cowChains = {'eth', 'arbitrum'};
+  bool get intentSupported => _cowChains.contains(swapChainKey.value);
+  bool get isIntent => intentMode.value && intentSupported && !isCrossChain;
+
   /// Chain the buy token lives on (dest for cross-chain, else source).
   String get buyChainKey => destChainKey.value ?? swapChainKey.value;
 
-  /// Amount to show on the buy card: bridge toAmount (cross-chain) or DEX best.
-  BigInt? get displayBuyAmount =>
-      isCrossChain ? bridgeQuote.value?.toAmount : priceResult.value?.buyAmount;
+  /// Amount to show on the buy card per mode: bridge / intent estimate / DEX best.
+  BigInt? get displayBuyAmount => isCrossChain
+      ? bridgeQuote.value?.toAmount
+      : isIntent
+          ? intentQuote.value?.expectedBuyAmount
+          : priceResult.value?.buyAmount;
 
   /// Whether the backend has supplied a 0x API key. Drives the "未配置" banner.
   /// The key is never baked into the app — it comes from /wallet/swap_config.
@@ -203,6 +218,8 @@ class SwapLogic extends GetxController {
     swapChainKey.value = chainKey;
     destChainKey.value = null; // back to same-chain on the new source
     bridgeQuote.value = null;
+    intentQuote.value = null;
+    if (!intentSupported) intentMode.value = false;
     sellAmountText.value = '';
     priceResult.value = null;
     lastError.value = null;
@@ -343,8 +360,106 @@ class SwapLogic extends GetxController {
     needsApproval.value = null;
     selectedProviderId.value = null;
     allPrices.clear();
+    if (destChainKey.value != null) intentMode.value = false; // intent is same-chain
     _setDefaultBuyToken(); // buy token now lives on the new buy chain
     _fetchPriceIfReady();
+  }
+
+  /// Toggle intent (CoW) mode. Forces same-chain; CoW can't sell native, so the
+  /// default pair becomes the chain's first two stablecoins.
+  void toggleIntent(bool on) {
+    intentMode.value = on;
+    if (on) destChainKey.value = null;
+    intentQuote.value = null;
+    bridgeQuote.value = null;
+    priceResult.value = null;
+    lastError.value = null;
+    needsApproval.value = null;
+    allPrices.clear();
+    selectedProviderId.value = null;
+    sellAmountText.value = '';
+    if (on) {
+      _setDefaultIntentPair();
+    } else {
+      _setDefaultPair();
+    }
+    _fetchPriceIfReady();
+  }
+
+  /// CoW sells ERC20 only — default to the chain's first two builtin tokens
+  /// (e.g. USDT → USDC).
+  void _setDefaultIntentPair() {
+    final cfg = chains[swapChainKey.value];
+    if (cfg == null || cfg.builtinTokens.length < 2) return;
+    final a = cfg.builtinTokens[0];
+    final b = cfg.builtinTokens[1];
+    sellToken.value = SwapToken(
+        chainKey: swapChainKey.value,
+        symbol: a.symbol,
+        decimals: a.decimals,
+        contractAddress: a.contractAddress);
+    buyToken.value = SwapToken(
+        chainKey: swapChainKey.value,
+        symbol: b.symbol,
+        decimals: b.decimals,
+        contractAddress: b.contractAddress);
+  }
+
+  /// Intent (CoW) quote via backend. The returned order is firm and ready to
+  /// EIP-712-sign at execute time.
+  Future<void> _fetchIntentQuote(
+      SwapToken sell, SwapToken buy, BigInt amt, String taker, int seq) async {
+    isFetchingPrice.value = true;
+    lastError.value = null;
+    try {
+      final q = await _intent.quote(
+        chainKey: swapChainKey.value,
+        sellToken: sell,
+        buyToken: buy,
+        amount: amt,
+        from: taker,
+        slippageBps: slippageBps.value,
+      );
+      if (seq != _priceSeq) return;
+      intentQuote.value = q;
+      priceResult.value = null;
+      await _refreshIntentApprovalState(q);
+    } on SwapException catch (e) {
+      if (seq != _priceSeq) return;
+      lastError.value = e;
+      intentQuote.value = null;
+    } catch (e) {
+      if (seq != _priceSeq) return;
+      lastError.value = SwapException(SwapErrorKind.unknown, '$e');
+      intentQuote.value = null;
+    } finally {
+      if (seq == _priceSeq) isFetchingPrice.value = false;
+    }
+  }
+
+  /// Approval state for a CoW order: ERC20 sell must approve the VaultRelayer.
+  Future<void> _refreshIntentApprovalState(IntentQuote q) async {
+    final sell = sellToken.value;
+    final contract = sell?.contractAddress;
+    final config = chains[swapChainKey.value];
+    if (sell == null || sell.isNative || contract == null || config == null) {
+      needsApproval.value = null;
+      return;
+    }
+    final svc = EvmService(config, swapChainKey.value,
+        rpcsOverride: _swapConfigRpcs(swapChainKey.value));
+    try {
+      final allowance = await svc.getAllowance(
+        owner: takerAddress,
+        spender: q.approvalSpender,
+        tokenContract: contract,
+      );
+      needsApproval.value = allowance < BigInt.parse(q.order.sellAmount);
+    } catch (_) {
+      needsApproval.value = null;
+    } finally {
+      svc.dispose();
+    }
   }
 
   /// Cross-chain quote (LI.FI via backend). Mirrors the same-chain price path
@@ -432,6 +547,10 @@ class SwapLogic extends GetxController {
     }
     if (isCrossChain) {
       await _fetchBridgeQuote(sell, buy, amt, taker, ++_priceSeq);
+      return;
+    }
+    if (isIntent) {
+      await _fetchIntentQuote(sell, buy, amt, taker, ++_priceSeq);
       return;
     }
     final req = SwapQuoteRequest(
@@ -905,6 +1024,147 @@ class SwapLogic extends GetxController {
     }
   }
 
+  /// Intent (CoW) execution: fresh quote → approve VaultRelayer if needed →
+  /// EIP-712-sign the order → submit. Returns the order UID; settlement is
+  /// tracked separately via intent status. Gasless at execution, MEV-protected.
+  Future<SwapExecutionResult> executeIntent({required String password}) async {
+    final entryRoute = Get.routing.current;
+    bool routeStillActive() => Get.routing.current == entryRoute;
+
+    final sell = sellToken.value;
+    final buy = buyToken.value;
+    final amt = sellAmountRaw;
+    final taker = takerAddress;
+    final chainKey = swapChainKey.value;
+    if (sell == null || buy == null || amt == BigInt.zero || taker.isEmpty) {
+      return const SwapExecutionResult.failed('内部错误：缺少参数');
+    }
+    if (sell.isNative || sell.contractAddress == null) {
+      return const SwapExecutionResult.failed('极速兑换不支持原生代币，请选择 ERC20');
+    }
+    final account = wallet.selectedAccount.value;
+    if (account == null) return const SwapExecutionResult.failed('未选择账户');
+    final config = chains[chainKey];
+    if (config == null) return const SwapExecutionResult.failed('链配置缺失');
+    final contract = sell.contractAddress!;
+
+    Future<IntentQuote> freshQuote() => _intent.quote(
+          chainKey: chainKey,
+          sellToken: sell,
+          buyToken: buy,
+          amount: amt,
+          from: taker,
+          slippageBps: slippageBps.value,
+        );
+
+    IntentQuote q;
+    try {
+      q = await freshQuote();
+    } on SwapException catch (e) {
+      return SwapExecutionResult.failed('报价失败: ${e.message}');
+    }
+    if (!routeStillActive()) return const SwapExecutionResult.failed('已取消（页面已切换）');
+
+    final svc = EvmService(config, chainKey, rpcsOverride: _swapConfigRpcs(chainKey));
+    EthPrivateKey? evmKey;
+    try {
+      evmKey = await wallet.vault.withMnemonic(password, (mBytes) async {
+        final seed = WalletKey.mnemonicToSeed(mBytes);
+        try {
+          return WalletKey.deriveEVMKey(seed, account.index);
+        } finally {
+          seed.fillRange(0, seed.length, 0);
+        }
+      });
+    } catch (e) {
+      svc.dispose();
+      return SwapExecutionResult.failed('密码错误或解密失败');
+    }
+    if (evmKey == null) {
+      svc.dispose();
+      return const SwapExecutionResult.failed('无法派生密钥');
+    }
+
+    try {
+      final totpEnabled = await TotpService.status();
+      if (!routeStillActive()) return const SwapExecutionResult.failed('已取消（页面已切换）');
+      if (totpEnabled) {
+        final ctx = Get.context;
+        if (ctx == null) return const SwapExecutionResult.failed('上下文丢失');
+        // ignore: use_build_context_synchronously
+        final ok = await showTotpVerifyDialog(ctx);
+        if (!ok) return const SwapExecutionResult.failed('已取消');
+        if (!routeStillActive()) return const SwapExecutionResult.failed('已取消（页面已切换）');
+      }
+
+      final usdValue = _estimatedUsdValue(sell, amt);
+      if (usdValue != null && usdValue > _config.limits.largeAmountUsdThreshold) {
+        final ctx = Get.context;
+        if (ctx == null) return const SwapExecutionResult.failed('上下文丢失');
+        final accepted = await _confirmLargeAmount(
+          // ignore: use_build_context_synchronously
+          ctx,
+          usdValue: usdValue,
+          sell: sell,
+          buy: buy,
+          sellAmount: amt,
+          buyAmount: q.expectedBuyAmount,
+        );
+        if (!accepted) return const SwapExecutionResult.failed('已取消（大额确认）');
+        if (!routeStillActive()) return const SwapExecutionResult.failed('已取消（页面已切换）');
+      }
+
+      // Approve the CoW VaultRelayer to spend the sell token if needed.
+      var approvalNeeded = true;
+      try {
+        final current = await svc.getAllowance(
+            owner: taker, spender: q.approvalSpender, tokenContract: contract);
+        approvalNeeded = current < BigInt.parse(q.order.sellAmount);
+      } catch (_) {}
+      if (approvalNeeded) {
+        try {
+          final approveTx = await svc.sendApprove(
+            senderKey: evmKey,
+            tokenContract: contract,
+            spender: q.approvalSpender,
+            amount: _maxUint256,
+          );
+          final ok = await svc.waitForReceipt(approveTx,
+              timeout: Duration(seconds: _config.limits.approveReceiptTimeoutSeconds));
+          if (!ok) return SwapExecutionResult.failed('授权交易未确认，请稍后重试');
+        } catch (e) {
+          return SwapExecutionResult.failed('授权失败: $e');
+        }
+        if (!routeStillActive()) return const SwapExecutionResult.failed('已取消（页面已切换）');
+        try {
+          q = await freshQuote(); // validTo/amounts may shift after approve
+        } on SwapException catch (e) {
+          return SwapExecutionResult.failed('重新报价失败: ${e.message}');
+        }
+      }
+
+      // Sign the CoW order (EIP-712) and submit it — no broadcast, no gas.
+      final digest = CowOrder.digest(q.order,
+          chainId: q.chainId, verifyingContract: q.verifyingContract);
+      final sigHex = Eip712.signDigestHex(digest, evmKey);
+      final orderUid = await _intent.submit(
+        chainKey: chainKey,
+        order: q.order,
+        signatureHex: sigHex,
+        from: taker,
+        quoteId: q.quoteId,
+      );
+      wallet.refreshBalances();
+      return SwapExecutionResult.intentSubmitted(orderUid: orderUid, chainKey: chainKey);
+    } on SwapException catch (e) {
+      return SwapExecutionResult.failed('挂单失败: ${e.message}');
+    } catch (e) {
+      return SwapExecutionResult.failed('挂单失败: $e');
+    } finally {
+      svc.dispose();
+    }
+  }
+
   /// Returns the USD-equivalent value of `amount` of `sell`, or null when no
   /// price feed is loaded for that token.
   double? _estimatedUsdValue(SwapToken sell, BigInt amount) {
@@ -1009,9 +1269,11 @@ class SwapExecutionResult {
   // Cross-chain only: present on a bridge submission so the UI can track delivery.
   final String? toChain;
   final String? tool;
+  // Intent only: the CoW order UID for status tracking.
+  final String? orderUid;
 
   const SwapExecutionResult.success({required String this.txHash, required String this.chainKey})
-      : ok = true, error = null, toChain = null, tool = null;
+      : ok = true, error = null, toChain = null, tool = null, orderUid = null;
 
   /// Source-chain bridge tx broadcast; delivery is tracked via bridge status.
   const SwapExecutionResult.bridgeSubmitted({
@@ -1019,10 +1281,17 @@ class SwapExecutionResult {
     required String this.chainKey,
     required String this.toChain,
     required String this.tool,
-  }) : ok = true, error = null;
+  }) : ok = true, error = null, orderUid = null;
+
+  /// CoW order submitted; settlement is tracked via intent status.
+  const SwapExecutionResult.intentSubmitted({
+    required String this.orderUid,
+    required String this.chainKey,
+  }) : ok = true, error = null, txHash = null, toChain = null, tool = null;
 
   const SwapExecutionResult.failed(String this.error)
-      : ok = false, txHash = null, chainKey = null, toChain = null, tool = null;
+      : ok = false, txHash = null, chainKey = null, toChain = null, tool = null, orderUid = null;
 
   bool get isBridge => toChain != null;
+  bool get isIntentOrder => orderUid != null;
 }
