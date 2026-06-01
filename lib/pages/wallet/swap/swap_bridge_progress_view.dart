@@ -7,6 +7,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
@@ -177,9 +178,20 @@ class _SwapBridgeProgressViewState extends State<SwapBridgeProgressView> {
               style: TextStyle(fontSize: 13.sp, color: Styles.c_8E9AB0)),
           const Spacer(),
           GestureDetector(
-            onTap: () => Clipboard.setData(ClipboardData(text: txHash)),
-            child: Text(short,
-                style: TextStyle(fontSize: 13.sp, color: Styles.c_0C1C33)),
+            onTap: () {
+              Clipboard.setData(ClipboardData(text: txHash));
+              EasyLoading.showToast('已复制');
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(short,
+                    style:
+                        TextStyle(fontSize: 13.sp, color: Styles.c_0C1C33)),
+                SizedBox(width: 4.w),
+                Icon(Icons.copy, size: 13.w, color: Styles.c_8E9AB0),
+              ],
+            ),
           ),
           if (url != null) ...[
             SizedBox(width: 8.w),
