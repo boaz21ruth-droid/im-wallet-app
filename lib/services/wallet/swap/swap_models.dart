@@ -113,6 +113,66 @@ class SwapQuote {
   });
 }
 
+/// Cross-chain (bridge) quote from LI.FI via /wallet/bridge/quote. Carries a
+/// source-chain signable tx plus delivery metadata. The client signs+broadcasts
+/// `to`/`data`/`value` on the source chain, then polls bridge status.
+class BridgeQuote {
+  final String tool; // chosen bridge, e.g. "across"
+  final String fromChain;
+  final String toChain;
+  final BigInt toAmount; // expected received on dest chain
+  final BigInt toAmountMin;
+  final String to;
+  final String data;
+  final BigInt value;
+  final BigInt? gas;
+  final BigInt? gasPrice;
+  final ApprovalIssue? approval; // source-chain ERC20 approval (null for native)
+  final int executionDurationSec;
+
+  const BridgeQuote({
+    required this.tool,
+    required this.fromChain,
+    required this.toChain,
+    required this.toAmount,
+    required this.toAmountMin,
+    required this.to,
+    required this.data,
+    required this.value,
+    this.gas,
+    this.gasPrice,
+    this.approval,
+    required this.executionDurationSec,
+  });
+}
+
+/// Cross-chain delivery state from /wallet/bridge/status.
+enum BridgeStatusKind { pending, done, failed, notFound, unknown }
+
+class BridgeStatus {
+  final BridgeStatusKind kind;
+  final String? destTxHash;
+  final String? explorer;
+
+  const BridgeStatus({required this.kind, this.destTxHash, this.explorer});
+
+  static BridgeStatusKind kindFrom(String? s) {
+    switch (s) {
+      case 'DONE':
+        return BridgeStatusKind.done;
+      case 'FAILED':
+      case 'INVALID':
+        return BridgeStatusKind.failed;
+      case 'PENDING':
+        return BridgeStatusKind.pending;
+      case 'NOT_FOUND':
+        return BridgeStatusKind.notFound;
+      default:
+        return BridgeStatusKind.unknown;
+    }
+  }
+}
+
 /// Reason for a quote/price failure. UI consumes this to pick the right
 /// disabled-button text without parsing error strings.
 enum SwapErrorKind {

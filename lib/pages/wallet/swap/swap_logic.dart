@@ -13,6 +13,7 @@ import '../../../services/wallet/swap/swap_config_service.dart';
 import '../../../services/wallet/swap/swap_models.dart';
 import '../../../services/wallet/swap/swap_provider.dart';
 import '../../../services/wallet/swap/backend_quote_provider.dart';
+import '../../../services/wallet/swap/bridge_service.dart';
 import '../../../services/wallet/wallet_models.dart';
 import '../../../services/wallet/wallet_key.dart';
 import '../send/totp_verify_dialog.dart';
@@ -28,12 +29,31 @@ class SwapLogic extends GetxController {
   final priceResult = Rxn<SwapPriceResult>();
   /// Ranked per-aggregator quotes (best first) for the comparison UI.
   final allPrices = <SwapPriceResult>[].obs;
+  /// User-pinned aggregator id, or null = auto (always use the best price).
+  final selectedProviderId = RxnString();
   final isFetchingPrice = false.obs;
   final lastError = Rxn<SwapException>();
   final needsApproval = Rxn<bool>();
   final slippageBps = 50.obs;
   // 'best' = server-side aggregated best quote across all configured aggregators.
   final providerId = 'best'.obs;
+
+  /// Destination chain for cross-chain swaps. null or == source = same-chain.
+  final destChainKey = RxnString();
+
+  /// Cross-chain route (LI.FI) when [isCrossChain]; null otherwise.
+  final bridgeQuote = Rxn<BridgeQuote>();
+  final BridgeService _bridge = BridgeService();
+
+  bool get isCrossChain =>
+      destChainKey.value != null && destChainKey.value != swapChainKey.value;
+
+  /// Chain the buy token lives on (dest for cross-chain, else source).
+  String get buyChainKey => destChainKey.value ?? swapChainKey.value;
+
+  /// Amount to show on the buy card: bridge toAmount (cross-chain) or DEX best.
+  BigInt? get displayBuyAmount =>
+      isCrossChain ? bridgeQuote.value?.toAmount : priceResult.value?.buyAmount;
 
   /// Whether the backend has supplied a 0x API key. Drives the "未配置" banner.
   /// The key is never baked into the app — it comes from /wallet/swap_config.
@@ -66,6 +86,41 @@ class SwapLogic extends GetxController {
     SwapConfigService.to.fetchAndCache().then((cfg) {
       if (cfg != null) swapConfigured.value = cfg.chains.isNotEmpty;
     });
+    _setDefaultPair();
+  }
+
+  /// Pre-selects a sensible default pair on entry / chain switch: the source
+  /// chain's native asset (From) → the buy chain's first builtin stablecoin (To).
+  void _setDefaultPair() {
+    final cfg = chains[swapChainKey.value];
+    if (cfg != null) {
+      sellToken.value = SwapToken(
+        chainKey: swapChainKey.value,
+        symbol: cfg.symbol,
+        decimals: cfg.decimals,
+      );
+    }
+    _setDefaultBuyToken();
+  }
+
+  /// Default buy token on the current [buyChainKey] (dest for cross-chain):
+  /// first builtin stablecoin, else native.
+  void _setDefaultBuyToken() {
+    final cfg = chains[buyChainKey];
+    if (cfg == null) {
+      buyToken.value = null;
+      return;
+    }
+    final stable = cfg.builtinTokens.isNotEmpty ? cfg.builtinTokens.first : null;
+    buyToken.value = stable == null
+        ? SwapToken(
+            chainKey: buyChainKey, symbol: cfg.symbol, decimals: cfg.decimals)
+        : SwapToken(
+            chainKey: buyChainKey,
+            symbol: stable.symbol,
+            decimals: stable.decimals,
+            contractAddress: stable.contractAddress,
+          );
   }
 
   String get takerAddress {
@@ -146,12 +201,15 @@ class SwapLogic extends GetxController {
   void switchChain(String chainKey) {
     if (!chains.containsKey(chainKey)) return;
     swapChainKey.value = chainKey;
-    sellToken.value = null;
-    buyToken.value = null;
+    destChainKey.value = null; // back to same-chain on the new source
+    bridgeQuote.value = null;
     sellAmountText.value = '';
     priceResult.value = null;
     lastError.value = null;
     needsApproval.value = null;
+    allPrices.clear();
+    selectedProviderId.value = null;
+    _setDefaultPair(); // pre-select the new chain's native → stablecoin pair
   }
 
   void selectSellToken(SwapToken t) {
@@ -260,6 +318,99 @@ class SwapLogic extends GetxController {
     _fetchPriceIfReady();
   }
 
+  /// Pin a specific aggregator (or null = auto/best). Updates the displayed
+  /// price instantly from the already-fetched comparison list; the backend
+  /// provider then uses this choice for the firm quote at execute time.
+  void selectProvider(String? providerId) {
+    selectedProviderId.value = providerId;
+    final ap = activeProvider;
+    if (ap is BackendQuoteProvider) ap.preferredProviderId = providerId;
+    if (allPrices.isEmpty) return;
+    final picked = providerId == null
+        ? allPrices.first // best (ranked first)
+        : allPrices.firstWhere((p) => p.providerId == providerId,
+            orElse: () => allPrices.first);
+    priceResult.value = picked;
+  }
+
+  /// Switch the destination chain. null or == source → same-chain mode.
+  void switchDestChain(String? chainKey) {
+    destChainKey.value =
+        (chainKey == null || chainKey == swapChainKey.value) ? null : chainKey;
+    bridgeQuote.value = null;
+    priceResult.value = null;
+    lastError.value = null;
+    needsApproval.value = null;
+    selectedProviderId.value = null;
+    allPrices.clear();
+    _setDefaultBuyToken(); // buy token now lives on the new buy chain
+    _fetchPriceIfReady();
+  }
+
+  /// Cross-chain quote (LI.FI via backend). Mirrors the same-chain price path
+  /// but the bridge `/quote` is already firm (carries source-chain calldata).
+  Future<void> _fetchBridgeQuote(
+      SwapToken sell, SwapToken buy, BigInt amt, String taker, int seq) async {
+    isFetchingPrice.value = true;
+    lastError.value = null;
+    try {
+      final acc = wallet.selectedAccount.value;
+      final toAddr = acc?.addresses[destChainKey.value] ?? taker;
+      final q = await _bridge.quote(
+        fromChain: swapChainKey.value,
+        toChain: destChainKey.value!,
+        fromToken: sell,
+        toToken: buy,
+        amount: amt,
+        fromAddress: taker,
+        toAddress: toAddr,
+        slippageBps: slippageBps.value,
+      );
+      if (seq != _priceSeq) return;
+      bridgeQuote.value = q;
+      priceResult.value = null;
+      await _refreshBridgeApprovalState(q);
+    } on SwapException catch (e) {
+      if (seq != _priceSeq) return;
+      lastError.value = e;
+      bridgeQuote.value = null;
+    } finally {
+      if (seq == _priceSeq) isFetchingPrice.value = false;
+    }
+  }
+
+  /// Source-chain approval state for a cross-chain quote: native sells and
+  /// missing approval info need none; otherwise check the live allowance to the
+  /// bridge spender.
+  Future<void> _refreshBridgeApprovalState(BridgeQuote q) async {
+    final sell = sellToken.value;
+    final approval = q.approval;
+    if (sell == null || sell.isNative || approval == null) {
+      needsApproval.value = false;
+      return;
+    }
+    final config = chains[swapChainKey.value];
+    final contract = sell.contractAddress;
+    if (config == null || contract == null) {
+      needsApproval.value = null;
+      return;
+    }
+    final svc = EvmService(config, swapChainKey.value,
+        rpcsOverride: _swapConfigRpcs(swapChainKey.value));
+    try {
+      final allowance = await svc.getAllowance(
+        owner: takerAddress,
+        spender: approval.spender,
+        tokenContract: contract,
+      );
+      needsApproval.value = allowance < approval.requiredAmount;
+    } catch (_) {
+      needsApproval.value = null;
+    } finally {
+      svc.dispose();
+    }
+  }
+
   Future<void> _fetchPriceIfReady() async {
     final sell = sellToken.value;
     final buy = buyToken.value;
@@ -267,10 +418,15 @@ class SwapLogic extends GetxController {
     final taker = takerAddress;
     if (sell == null || buy == null || amt == BigInt.zero || taker.isEmpty) {
       priceResult.value = null;
+      bridgeQuote.value = null;
       return;
     }
-    if (sell == buy) {
+    if (sell == buy && !isCrossChain) {
       priceResult.value = null;
+      return;
+    }
+    if (isCrossChain) {
+      await _fetchBridgeQuote(sell, buy, amt, taker, ++_priceSeq);
       return;
     }
     final req = SwapQuoteRequest(
@@ -291,6 +447,13 @@ class SwapLogic extends GetxController {
       final ap = activeProvider;
       allPrices.assignAll(
           ap is BackendQuoteProvider ? ap.lastComparison : const []);
+      // If the user's pinned provider isn't available for this pair, drop back
+      // to auto (best) so the UI selection stays consistent with what executes.
+      final sel = selectedProviderId.value;
+      if (sel != null && !allPrices.any((p) => p.providerId == sel)) {
+        selectedProviderId.value = null;
+        if (ap is BackendQuoteProvider) ap.preferredProviderId = null;
+      }
       // Cheap follow-up: one allowance RPC call (or instant for native) plus
       // a gas-price snapshot for the pre-flight "Gas 不足" check.
       // TODO(task4): refresh needsApproval after successful approve
