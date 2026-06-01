@@ -98,10 +98,10 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
     if (ok) {
       walletState.value = WalletState.unlocked;
       _scheduleAutoLock();
-      unawaited(refreshBalances());
+      // RPC config first (cached = instant), then balances use the backend RPCs.
+      unawaited(_refreshConfigThenBalances());
       unawaited(refreshPrices());
       unawaited(_registerBackendAddresses());
-      unawaited(_refreshSwapConfig());
     }
     return ok;
   }
@@ -111,10 +111,10 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
     if (ok) {
       walletState.value = WalletState.unlocked;
       _scheduleAutoLock();
-      unawaited(refreshBalances());
+      // RPC config first (cached = instant), then balances use the backend RPCs.
+      unawaited(_refreshConfigThenBalances());
       unawaited(refreshPrices());
       unawaited(_registerBackendAddresses());
-      unawaited(_refreshSwapConfig());
     }
     return ok;
   }
@@ -124,9 +124,25 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
   /// requiring an app release. Silently no-ops if SwapConfigService isn't
   /// registered (it lives behind SwapBinding, which is permanent once first
   /// touched).
-  Future<void> _refreshSwapConfig() async {
-    if (!Get.isRegistered<SwapConfigService>()) return;
-    await SwapConfigService.to.fetchAndCache();
+  /// Registers SwapConfigService and loads its cached (on-disk) copy. Instant —
+  /// makes the backend per-chain RPC overrides available before the first
+  /// balance read, instead of waiting for the user to open the Swap page.
+  Future<void> _ensureSwapConfig() async {
+    if (!Get.isRegistered<SwapConfigService>()) {
+      Get.put<SwapConfigService>(SwapConfigService(), permanent: true);
+      await SwapConfigService.to.loadFromStorage();
+    }
+  }
+
+  /// Loads swap config (per-chain RPC overrides) BEFORE reading balances, so the
+  /// wallet uses the backend-configured RPCs on the very first query rather than
+  /// the compile-time chain_config fallback. The cached copy makes step 1
+  /// instant; a background network refresh re-reads balances if the RPCs rotated.
+  Future<void> _refreshConfigThenBalances() async {
+    await _ensureSwapConfig();
+    unawaited(refreshBalances());
+    final updated = await SwapConfigService.to.fetchAndCache();
+    if (updated != null) unawaited(refreshBalances());
   }
 
   Future<void> _registerBackendAddresses() async {
@@ -232,10 +248,10 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
     settings.value = await _store.loadSettings();
     walletState.value = WalletState.unlocked;
     _scheduleAutoLock();
-    unawaited(refreshBalances());
+    // RPC config first (cached = instant), then balances use the backend RPCs.
+    unawaited(_refreshConfigThenBalances());
     unawaited(refreshPrices());
     unawaited(_registerBackendAddresses());
-    unawaited(_refreshSwapConfig());
   }
 
   Map<String, String> _deriveAddresses(Uint8List seed, int index) {
