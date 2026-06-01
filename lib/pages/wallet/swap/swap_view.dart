@@ -12,6 +12,7 @@ import '../../../services/wallet/wallet_models.dart';
 import 'slippage_sheet.dart';
 import 'swap_logic.dart';
 import 'swap_bridge_progress_view.dart';
+import 'intent_order_progress_view.dart';
 import 'swap_result_view.dart';
 import 'token_picker_sheet.dart';
 
@@ -95,6 +96,7 @@ class SwapView extends StatelessWidget {
                             color: Colors.red[700], fontSize: 13.sp)),
                   )),
             _buildChainChip(context, logic),
+            _intentToggle(logic),
             SizedBox(height: 16.h),
             _SellCard(logic: logic),
             SizedBox(height: 12.h),
@@ -135,6 +137,38 @@ class SwapView extends StatelessWidget {
                   size: 16.w, color: Styles.c_8E9AB0),
             ],
           ),
+        ),
+      );
+    });
+  }
+
+  // Intent (CoW) mode toggle — only on CoW chains and same-chain swaps.
+  Widget _intentToggle(SwapLogic logic) {
+    return Obx(() {
+      if (!logic.intentSupported || logic.isCrossChain) {
+        return const SizedBox.shrink();
+      }
+      return Padding(
+        padding: EdgeInsets.only(top: 10.h),
+        child: Row(
+          children: [
+            Icon(Icons.bolt, size: 16.w, color: Styles.c_0089FF),
+            SizedBox(width: 4.w),
+            Text('极速兑换',
+                style: TextStyle(
+                    fontSize: 13.sp,
+                    color: Styles.c_0C1C33,
+                    fontWeight: FontWeight.w600)),
+            SizedBox(width: 6.w),
+            Text('防夹 · 免 Gas',
+                style: TextStyle(fontSize: 11.sp, color: Styles.c_8E9AB0)),
+            const Spacer(),
+            Switch(
+              value: logic.intentMode.value,
+              onChanged: logic.toggleIntent,
+              activeThumbColor: Styles.c_0089FF,
+            ),
+          ],
         ),
       );
     });
@@ -261,7 +295,7 @@ class _BuyCard extends StatelessWidget {
         token: t,
         amountValue: amountStr,
         onAmountChanged: (_) {},
-        headerTrailing: _destChainChip(context, logic),
+        headerTrailing: logic.isIntent ? null : _destChainChip(context, logic),
         onPickToken: () async {
           final picked = await showTokenPickerSheet(
               context, TokenPickerSide.buy);
@@ -505,6 +539,20 @@ class _QuoteSummary extends StatelessWidget {
           ],
         );
       }
+      // Intent (CoW): show the gasless order summary; no DEX picker / gas.
+      if (logic.isIntent) {
+        final q = logic.intentQuote.value;
+        if (q == null) return const SizedBox.shrink();
+        return Column(
+          children: [
+            _row('模式', 'CoW · 防夹免Gas'),
+            _row('最少获得',
+                '${_formatBigInt(BigInt.parse(q.order.buyAmount), buy.decimals)} ${buy.symbol}'),
+            _row('滑点',
+                '${(logic.slippageBps.value / 100).toStringAsFixed(2)}%'),
+          ],
+        );
+      }
       final r = logic.priceResult.value;
       if (r == null) {
         return const SizedBox.shrink();
@@ -649,8 +697,10 @@ class _MainButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       final text = _resolveText(logic);
-      final enabled =
-          text == 'Swap' || text == '跨链兑换' || text.startsWith('授权');
+      final enabled = text == 'Swap' ||
+          text == '跨链兑换' ||
+          text == '极速兑换' ||
+          text.startsWith('授权');
       return SizedBox(
         width: double.infinity,
         height: 52.h,
@@ -731,6 +781,13 @@ class _MainButton extends StatelessWidget {
       }
       return '跨链兑换';
     }
+    if (logic.isIntent) {
+      if (logic.intentQuote.value == null) return '输入金额';
+      if (logic.needsApproval.value == true) {
+        return '授权 ${logic.sellToken.value!.symbol}';
+      }
+      return '极速兑换';
+    }
     if (logic.priceResult.value == null) return '输入金额';
     if (logic.needsApproval.value == true) {
       return '授权 ${logic.sellToken.value!.symbol}';
@@ -762,9 +819,16 @@ class _PasswordSheetState extends State<_PasswordSheet> {
     final logic = widget.logic;
     final result = logic.isCrossChain
         ? await logic.executeBridge(password: _pwdCtrl.text)
-        : await logic.executeSwap(password: _pwdCtrl.text);
+        : logic.isIntent
+            ? await logic.executeIntent(password: _pwdCtrl.text)
+            : await logic.executeSwap(password: _pwdCtrl.text);
     EasyLoading.dismiss();
-    if (result.isBridge && result.ok) {
+    if (result.isIntentOrder && result.ok) {
+      Get.off(() => IntentOrderProgressView(
+            orderUid: result.orderUid!,
+            chainKey: result.chainKey!,
+          ));
+    } else if (result.isBridge && result.ok) {
       Get.off(() => SwapBridgeProgressView(
             sourceTxHash: result.txHash!,
             fromChain: result.chainKey!,

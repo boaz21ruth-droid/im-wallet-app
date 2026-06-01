@@ -173,6 +173,112 @@ class BridgeStatus {
   }
 }
 
+/// A CoW GPv2 order the user signs (EIP-712). Field names/types mirror the Go
+/// intent.Order and the EIP-712 Order struct.
+class IntentOrder {
+  final String sellToken;
+  final String buyToken;
+  final String receiver;
+  final String sellAmount;
+  final String buyAmount;
+  final int validTo;
+  final String appData; // 32-byte hash
+  final String feeAmount;
+  final String kind;
+  final bool partiallyFillable;
+  final String sellTokenBalance;
+  final String buyTokenBalance;
+
+  const IntentOrder({
+    required this.sellToken,
+    required this.buyToken,
+    required this.receiver,
+    required this.sellAmount,
+    required this.buyAmount,
+    required this.validTo,
+    required this.appData,
+    required this.feeAmount,
+    required this.kind,
+    required this.partiallyFillable,
+    required this.sellTokenBalance,
+    required this.buyTokenBalance,
+  });
+
+  factory IntentOrder.fromJson(Map<String, dynamic> j) => IntentOrder(
+        sellToken: j['sellToken'] as String,
+        buyToken: j['buyToken'] as String,
+        receiver: j['receiver'] as String,
+        sellAmount: j['sellAmount'] as String,
+        buyAmount: j['buyAmount'] as String,
+        validTo: j['validTo'] as int,
+        appData: j['appData'] as String,
+        feeAmount: j['feeAmount'] as String,
+        kind: j['kind'] as String,
+        partiallyFillable: j['partiallyFillable'] as bool,
+        sellTokenBalance: j['sellTokenBalance'] as String,
+        buyTokenBalance: j['buyTokenBalance'] as String,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'sellToken': sellToken,
+        'buyToken': buyToken,
+        'receiver': receiver,
+        'sellAmount': sellAmount,
+        'buyAmount': buyAmount,
+        'validTo': validTo,
+        'appData': appData,
+        'feeAmount': feeAmount,
+        'kind': kind,
+        'partiallyFillable': partiallyFillable,
+        'sellTokenBalance': sellTokenBalance,
+        'buyTokenBalance': buyTokenBalance,
+      };
+}
+
+/// Intent (CoW) quote from /wallet/intent/quote: the order to sign + the EIP-712
+/// domain inputs + the pre-trade approval spender.
+class IntentQuote {
+  final IntentOrder order;
+  final int chainId;
+  final String verifyingContract; // GPv2Settlement
+  final String approvalSpender; // GPv2VaultRelayer
+  final int quoteId;
+  final BigInt expectedBuyAmount; // pre-slippage estimate, for display
+
+  const IntentQuote({
+    required this.order,
+    required this.chainId,
+    required this.verifyingContract,
+    required this.approvalSpender,
+    required this.quoteId,
+    required this.expectedBuyAmount,
+  });
+}
+
+/// Intent order settlement state from /wallet/intent/status.
+enum IntentStatusKind { open, fulfilled, cancelled, expired, unknown }
+
+class IntentStatus {
+  final IntentStatusKind kind;
+  const IntentStatus(this.kind);
+
+  static IntentStatusKind kindFrom(String? s) {
+    switch (s) {
+      case 'fulfilled':
+        return IntentStatusKind.fulfilled;
+      case 'cancelled':
+        return IntentStatusKind.cancelled;
+      case 'expired':
+        return IntentStatusKind.expired;
+      case 'open':
+      case 'presignaturePending':
+        return IntentStatusKind.open;
+      default:
+        return IntentStatusKind.unknown;
+    }
+  }
+}
+
 /// Reason for a quote/price failure. UI consumes this to pick the right
 /// disabled-button text without parsing error strings.
 enum SwapErrorKind {
