@@ -13,6 +13,7 @@ import '../../../services/wallet/wallet_key.dart';
 import '../../../services/wallet/wallet_models.dart';
 import '../wallet_logic.dart';
 import 'totp_verify_dialog.dart';
+import 'select_friend_address_page.dart';
 
 class WalletSendView extends StatefulWidget {
   final String? prefillAddress;
@@ -276,6 +277,19 @@ class _WalletSendViewState extends State<WalletSendView> {
     }
   }
 
+  Future<void> _pickFriendAddress() async {
+    final chainKey = logic.selectedChainKey.value;
+    final address = await Get.to<String?>(
+      () => SelectFriendAddressPage(chainKey: chainKey),
+    );
+    if (address != null && address.isNotEmpty) {
+      setState(() {
+        _addrCtrl.text = address;
+        _error = null;
+      });
+    }
+  }
+
   Future<void> _pasteAddress() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text?.trim() ?? '';
@@ -394,6 +408,11 @@ class _WalletSendViewState extends State<WalletSendView> {
               ),
               onChanged: (_) => setState(() => _error = null),
             ),
+          ),
+          IconButton(
+            icon: Icon(Icons.person_search_rounded, color: Styles.c_0089FF, size: 22.w),
+            onPressed: _pickFriendAddress,
+            tooltip: '从联系人选择',
           ),
           IconButton(
             icon: Icon(Icons.content_paste_rounded, color: Styles.c_0089FF, size: 22.w),
