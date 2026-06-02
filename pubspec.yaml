@@ -84,6 +84,7 @@ dependencies:
   audio_session: ^0.1.25
   vibration: ^3.1.4
   local_auth: ^2.2.0
+  flutter_screen_lock: ^9.2.2+2
   gesture_password_widget: ^2.0.1
   sound_mode: ^3.1.1
   visibility_detector: ^0.4.0+2
