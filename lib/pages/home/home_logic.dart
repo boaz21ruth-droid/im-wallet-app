@@ -181,7 +181,9 @@ class HomeLogic extends SuperController {
   void onPaused() {}
 
   @override
-  void onResumed() {}
+  void onResumed() {
+    _showLockScreenPwd();
+  }
 
   void _getRTCInvitationStart() async {}
 
