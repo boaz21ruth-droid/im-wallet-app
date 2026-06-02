@@ -3,6 +3,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:openim_common/openim_common.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../services/wallet/chain_config.dart';
+
 class WalletTransferBubble extends StatelessWidget {
   final String amount;
   final String symbol;
@@ -56,20 +58,9 @@ class WalletTransferBubble extends StatelessWidget {
   }
 
   String? get _explorerUrl {
-    const explorers = {
-      'eth': 'https://etherscan.io',
-      'eth_sepolia': 'https://sepolia.etherscan.io',
-      'bsc': 'https://bscscan.com',
-      'bsc_testnet': 'https://testnet.bscscan.com',
-      'polygon': 'https://polygonscan.com',
-      'arbitrum': 'https://arbiscan.io',
-      'optimism': 'https://optimistic.etherscan.io',
-      'tron': 'https://tronscan.org/#',
-      'tron_shasta': 'https://shasta.tronscan.org/#',
-    };
-    final base = explorers[chain];
+    final base = chains[chain]?.txExplorerBase;
     if (base == null) return null;
-    return '$base/tx/$hash';
+    return '$base$hash';
   }
 
   @override
