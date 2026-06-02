@@ -313,7 +313,7 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
       } else {
         final config = chains[chainKey];
         if (config == null) return;
-        final rpcsOverride = _swapConfigRpcs(chainKey);
+        final rpcsOverride = swapConfigRpcs(chainKey);
         final svc = EvmService(config, chainKey, rpcsOverride: rpcsOverride);
         final list = await svc.getAllBalances(address);
         for (final b in list) {
@@ -326,7 +326,7 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
 
   /// Returns the RPC list the swap config wants for `chainKey`, or null when
   /// the service isn't registered yet (i.e. before the first Swap entry).
-  List<String>? _swapConfigRpcs(String chainKey) {
+  List<String>? swapConfigRpcs(String chainKey) {
     if (!Get.isRegistered<SwapConfigService>()) return null;
     final rpcs = SwapConfigService.to.current.chains[chainKey]?.rpcs;
     return (rpcs == null || rpcs.isEmpty) ? null : rpcs;

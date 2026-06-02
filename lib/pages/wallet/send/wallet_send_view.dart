@@ -62,7 +62,7 @@ class _WalletSendViewState extends State<WalletSendView> {
       final chainKey = logic.selectedChainKey.value;
       final config = chains[chainKey];
       if (config == null) return;
-      final svc = EvmService(config, chainKey);
+      final svc = EvmService(config, chainKey, rpcsOverride: logic.swapConfigRpcs(chainKey));
       _gasPrice = await svc.getGasPrice();
       final from = logic.currentAddress;
       final amtDouble = double.tryParse(amtText) ?? 0;
@@ -244,7 +244,7 @@ class _WalletSendViewState extends State<WalletSendView> {
           } else {
             final config = chains[chainKey]!;
             final evmKey = WalletKey.deriveEVMKey(seed, logic.selectedAccount.value!.index);
-            final svc = EvmService(config, chainKey);
+            final svc = EvmService(config, chainKey, rpcsOverride: logic.swapConfigRpcs(chainKey));
             if (asset.isNative) {
               txHash = await svc.sendNative(senderKey: evmKey, to: to, value: amtRaw);
             } else {
