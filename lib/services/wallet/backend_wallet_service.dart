@@ -53,6 +53,30 @@ class BackendWalletService {
     }
   }
 
+  /// Returns the on-chain address for [friendUserID] on [chainKey].
+  /// Returns null if the friend has no registered wallet or on network error.
+  static Future<String?> getFriendAddress(
+      String friendUserID, String chainKey) async {
+    try {
+      final url =
+          '$_baseUrl/wallet/friend/address?userID=${Uri.encodeComponent(friendUserID)}&chainKey=${Uri.encodeComponent(chainKey)}';
+      final resp = await http
+          .get(Uri.parse(url), headers: _headers())
+          .timeout(const Duration(seconds: 8));
+
+      if (resp.statusCode != 200) return null;
+      final json = jsonDecode(resp.body) as Map<String, dynamic>;
+      if ((json['errCode'] as int? ?? 1) != 0) return null;
+
+      final data = json['data'] as Map<String, dynamic>?;
+      final hasWallet = data?['hasWallet'] as bool? ?? false;
+      if (!hasWallet) return null;
+      return data?['address'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Fetches transaction history from the backend.
   /// Returns null if the backend is unreachable (caller falls back to client-side).
   static Future<List<TxRecord>?> getTxHistory({

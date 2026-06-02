@@ -892,7 +892,7 @@ packages:
     source: hosted
     version: "2.0.34"
   flutter_screen_lock:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: flutter_screen_lock
       sha256: "540fc2f02a5284ed6fb150b1e4c0ba0a74ed9777bc8a8208bb1a610396feb9a3"

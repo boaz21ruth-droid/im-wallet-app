@@ -42,6 +42,23 @@ class AccountSetupPage extends StatelessWidget {
                   isTopRadius: true,
                   isBottomRadius: true,
                 ),
+                10.verticalSpace,
+                _buildItemView(
+                  label: '应用锁定',
+                  value: logic.lockEnabled.value ? '已开启' : '未开启',
+                  onTap: logic.setupAppLock,
+                  showRightArrow: true,
+                  isTopRadius: true,
+                ),
+                _buildItemView(
+                  label: '生物识别解锁',
+                  showSwitchButton: true,
+                  switchOn: logic.biometricEnabled.value,
+                  onChanged: logic.lockEnabled.value
+                      ? (_) => logic.toggleBiometric()
+                      : null,
+                  isBottomRadius: true,
+                ),
               ],
             ),
           )),
@@ -88,7 +105,7 @@ class AccountSetupPage extends StatelessWidget {
                   if (showSwitchButton)
                     CupertinoSwitch(
                       value: switchOn,
-                      activeColor: Styles.c_0089FF,
+                      activeTrackColor: Styles.c_0089FF,
                       onChanged: onChanged,
                     ),
                   if (showRightArrow)

@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'chat_logic.dart';
 import 'gif_picker.dart';
 import 'poll_bubble.dart';
+import 'wallet_transfer_bubble.dart';
 
 class ChatPage extends StatelessWidget {
   final logic = Get.find<ChatLogic>(tag: GetTags.chat);
@@ -235,6 +236,14 @@ class ChatPage extends StatelessWidget {
               ),
             ),
           ),
+          false,
+          true,
+        );
+      } else if (viewType == CustomMessageType.walletTransfer) {
+        final d = data['data'] as Map<String, dynamic>? ?? {};
+        final isSentByMe = message.sendID == OpenIM.iMManager.userID;
+        return CustomTypeInfo(
+          WalletTransferBubble.fromJson(d, isSentByMe: isSentByMe),
           false,
           true,
         );

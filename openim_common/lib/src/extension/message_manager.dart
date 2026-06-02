@@ -145,6 +145,7 @@ class CustomMessageType {
   static const poll = 909;
   static const groupFile = 914;
   static const pollVote = 915;
+  static const walletTransfer = 916;
 }
 
 extension PublicUserInfoExt on PublicUserInfo {
