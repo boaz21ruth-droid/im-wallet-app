@@ -65,7 +65,7 @@ class Config {
   static const groupScheme = "io.openim.app/joinGroup/";
 
   // Updated by setup.sh — run it whenever your LAN IP changes
-  static const _host = '192.168.110.105';
+  static const _host = '192.168.110.162';
 
   // true = route through Caddy on port 80 (path-based); false = direct service ports
   static const _useCaddy = true;
