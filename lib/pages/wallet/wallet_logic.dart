@@ -430,7 +430,7 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
       } else {
         final config = chains[chainKey];
         if (config == null) return;
-        final svc = EvmService(config, chainKey);
+        final svc = EvmService(config, chainKey, rpcsOverride: swapConfigRpcs(chainKey));
         txHistory.assignAll(await svc.getTransactionHistory(address));
         svc.dispose();
       }
@@ -478,7 +478,7 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
       } else {
         final config = chains[chainKey];
         if (config == null) return;
-        final svc = EvmService(config, chainKey);
+        final svc = EvmService(config, chainKey, rpcsOverride: swapConfigRpcs(chainKey));
         if (asset.isNative) {
           records = await svc.getTransactionHistory(address);
         } else {
