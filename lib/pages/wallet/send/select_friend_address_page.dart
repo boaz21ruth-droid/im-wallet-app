@@ -69,9 +69,14 @@ class _SelectFriendAddressPageState extends State<SelectFriendAddressPage> {
   }
 
   Future<void> _selectFriend(FriendInfo friend) async {
+    final uid = friend.userID;
+    if (uid == null || uid.isEmpty) {
+      EasyLoading.showError('好友信息不完整');
+      return;
+    }
     EasyLoading.show(status: '查询中...');
     final address = await BackendWalletService.getFriendAddress(
-      friend.userID!,
+      uid,
       widget.chainKey,
     );
     EasyLoading.dismiss();
