@@ -6,6 +6,7 @@ import 'package:openim_common/openim_common.dart';
 import '../../services/wallet/market_service.dart';
 import '../../services/wallet/wallet_models.dart';
 import 'backup/mnemonic_reveal_view.dart';
+import 'change_password_page.dart';
 import 'lock/wallet_lock_view.dart';
 import 'main/wallet_main_view.dart';
 import 'onboarding/wallet_onboard_view.dart';
@@ -516,9 +517,16 @@ class _ComingSoonTab extends StatelessWidget {
 
 // ── Wallet Settings Sheet ─────────────────────────────────────────────────────
 
-class _WalletSettingsSheet extends StatelessWidget {
+class _WalletSettingsSheet extends StatefulWidget {
   final WalletLogic logic;
   const _WalletSettingsSheet({required this.logic});
+
+  @override
+  State<_WalletSettingsSheet> createState() => _WalletSettingsSheetState();
+}
+
+class _WalletSettingsSheetState extends State<_WalletSettingsSheet> {
+  WalletLogic get logic => widget.logic;
 
   static const _lockOptions = [
     (label: '1 分钟', seconds: 60),
@@ -527,6 +535,49 @@ class _WalletSettingsSheet extends StatelessWidget {
     (label: '1 小时', seconds: 3600),
     (label: '永不锁定', seconds: 0),
   ];
+
+  Future<void> _toggleBiometric() async {
+    final enabled = logic.settings.value.biometricEnabled;
+    if (enabled) {
+      final err = await logic.toggleBiometricEnabled('');
+      if (err != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+      }
+      return;
+    }
+    final pwdCtrl = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        title: const Text('开启生物识别'),
+        content: TextField(
+          controller: pwdCtrl,
+          obscureText: true,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: '输入当前密码'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx, true),
+            child: const Text('确认'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      pwdCtrl.dispose();
+      return;
+    }
+    final err = await logic.toggleBiometricEnabled(pwdCtrl.text);
+    pwdCtrl.dispose();
+    if (err != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -624,6 +675,74 @@ class _WalletSettingsSheet extends StatelessWidget {
                     }).toList(),
                   );
                 }),
+                SizedBox(height: 20.h),
+                Text(
+                  '安全',
+                  style: TextStyle(
+                      fontSize: 13.sp,
+                      color: Styles.c_8E9AB0,
+                      fontWeight: FontWeight.w500),
+                ),
+                SizedBox(height: 10.h),
+                Obx(() {
+                  final enabled = logic.settings.value.biometricEnabled;
+                  return Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                    decoration: BoxDecoration(
+                      color: Styles.c_F8F9FA,
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.fingerprint,
+                            color: Styles.c_0C1C33, size: 20.w),
+                        SizedBox(width: 10.w),
+                        Text(
+                          '生物识别解锁',
+                          style: TextStyle(
+                              fontSize: 15.sp, color: Styles.c_0C1C33),
+                        ),
+                        const Spacer(),
+                        Switch(
+                          value: enabled,
+                          activeThumbColor: Styles.c_0089FF,
+                          onChanged: (_) => _toggleBiometric(),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                SizedBox(height: 8.h),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    Get.to(() => const ChangePasswordPage());
+                  },
+                  child: Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                    decoration: BoxDecoration(
+                      color: Styles.c_F8F9FA,
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.lock_reset,
+                            color: Styles.c_0C1C33, size: 20.w),
+                        SizedBox(width: 10.w),
+                        Text(
+                          '修改密码',
+                          style: TextStyle(
+                              fontSize: 15.sp, color: Styles.c_0C1C33),
+                        ),
+                        const Spacer(),
+                        Icon(Icons.chevron_right,
+                            color: Styles.c_8E9AB0, size: 20.w),
+                      ],
+                    ),
+                  ),
+                ),
                 SizedBox(height: 12.h),
                 GestureDetector(
                   onTap: () {

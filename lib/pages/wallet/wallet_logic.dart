@@ -65,8 +65,11 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
     } else if (state == AppLifecycleState.resumed) {
       final bg = _backgroundedAt;
       if (bg != null) {
-        final elapsed = DateTime.now().difference(bg).inSeconds;
-        if (elapsed >= settings.value.autoLockSeconds) lockWallet();
+        final secs = settings.value.autoLockSeconds;
+        if (secs > 0) {
+          final elapsed = DateTime.now().difference(bg).inSeconds;
+          if (elapsed >= secs) lockWallet();
+        }
       }
       _backgroundedAt = null;
     }
@@ -497,6 +500,46 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
     settings.value = settings.value.copyWith(autoLockSeconds: seconds);
     await _store.saveSettings(settings.value);
     _scheduleAutoLock();
+  }
+
+  /// Returns an error string on failure, or null on success.
+  Future<String?> toggleBiometricEnabled(String password) async {
+    final current = settings.value;
+    if (current.biometricEnabled) {
+      await vault.disableBiometric();
+      settings.value = current.copyWith(biometricEnabled: false);
+      await _store.saveSettings(settings.value);
+      return null;
+    }
+    final available = await vault.isBiometricAvailable();
+    if (!available) return '设备不支持生物识别';
+    try {
+      await vault.enableBiometric(password);
+    } catch (_) {
+      return '密码错误';
+    }
+    settings.value = current.copyWith(biometricEnabled: true);
+    await _store.saveSettings(settings.value);
+    return null;
+  }
+
+  /// Returns an error string on failure, or null on success.
+  Future<String?> changePassword(String oldPwd, String newPwd) async {
+    try {
+      await vault.changePassword(oldPwd, newPwd);
+    } catch (_) {
+      return '原密码错误';
+    }
+    if (settings.value.biometricEnabled) {
+      try {
+        await vault.enableBiometric(newPwd);
+      } catch (_) {
+        await vault.disableBiometric();
+        settings.value = settings.value.copyWith(biometricEnabled: false);
+        await _store.saveSettings(settings.value);
+      }
+    }
+    return null;
   }
 
   // ── Testnet mode ──────────────────────────────────────────────────────────
