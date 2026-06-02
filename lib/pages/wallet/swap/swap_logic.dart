@@ -580,7 +580,6 @@ class SwapLogic extends GetxController {
       }
       // Cheap follow-up: one allowance RPC call (or instant for native) plus
       // a gas-price snapshot for the pre-flight "Gas 不足" check.
-      // TODO(task4): refresh needsApproval after successful approve
       await _refreshApprovalState();
       unawaited(_refreshGasPrice(req.chainKey));
     } on SwapException catch (e) {
@@ -805,6 +804,7 @@ class SwapLogic extends GetxController {
         } catch (e) {
           return SwapExecutionResult.failed('授权失败: $e');
         }
+        needsApproval.value = false;
         if (!routeStillActive()) {
           return const SwapExecutionResult.failed('已取消（页面已切换）');
         }
@@ -989,6 +989,7 @@ class SwapLogic extends GetxController {
           } catch (e) {
             return SwapExecutionResult.failed('授权失败: $e');
           }
+          needsApproval.value = false;
           if (!routeStillActive()) return const SwapExecutionResult.failed('已取消（页面已切换）');
           try {
             q = await freshQuote(); // calldata may shift after approve
@@ -1135,6 +1136,7 @@ class SwapLogic extends GetxController {
         } catch (e) {
           return SwapExecutionResult.failed('授权失败: $e');
         }
+        needsApproval.value = false;
         if (!routeStillActive()) return const SwapExecutionResult.failed('已取消（页面已切换）');
         try {
           q = await freshQuote(); // validTo/amounts may shift after approve
