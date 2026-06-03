@@ -3,7 +3,9 @@ import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../services/wallet/market_service.dart';
+import '../../services/wallet/news_service.dart';
 import '../../services/wallet/wallet_models.dart';
 import 'backup/mnemonic_reveal_view.dart';
 import 'change_password_page.dart';
@@ -141,54 +143,6 @@ class _WalletNewsTab extends StatelessWidget {
 
   _WalletNewsTab();
 
-  static const _articles = [
-    _NewsItem(
-      title: 'Ethereum 完成最新网络升级',
-      summary: 'Ethereum 网络已成功完成最新的硬分叉升级，Gas 费用进一步降低...',
-      source: 'CoinDesk',
-      time: '2小时前',
-      tag: '公告',
-    ),
-    _NewsItem(
-      title: '比特币突破新高位，市值创历史记录',
-      summary: '受机构投资者持续入场影响，BTC 价格再度攀升至历史新高...',
-      source: 'CoinTelegraph',
-      time: '4小时前',
-      tag: '广场',
-    ),
-    _NewsItem(
-      title: 'DeFi 总锁仓量突破 1000 亿美元',
-      summary: '去中心化金融协议的总锁仓价值本周突破 1000 亿美元大关...',
-      source: 'The Block',
-      time: '6小时前',
-      tag: '广场',
-    ),
-    _NewsItem(
-      title: 'Polygon 宣布重大生态系统扩展计划',
-      summary: '多边形网络宣布将在未来六个月内引入多项新功能...',
-      source: 'Decrypt',
-      time: '昨天',
-      tag: '广场',
-    ),
-  ];
-
-  static const _announcements = [
-    _NewsItem(
-      title: '系统维护公告',
-      summary: '将于本周六凌晨 2:00-4:00 进行系统维护，期间部分功能不可用。',
-      source: '官方',
-      time: '1天前',
-      tag: '公告',
-    ),
-    _NewsItem(
-      title: '新版本发布说明',
-      summary: '新版本已上线，新增多链支持、优化界面体验。',
-      source: '官方',
-      time: '3天前',
-      tag: '公告',
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -196,24 +150,55 @@ class _WalletNewsTab extends StatelessWidget {
         _buildFilter(),
         Expanded(
           child: Obx(() {
-            final filter = logic.newsFilter.value;
-            final items = filter == 0
-                ? _articles.where((a) => a.tag == '广场').toList()
-                : _announcements;
-            return ListView.separated(
-              padding: EdgeInsets.symmetric(vertical: 12.h),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => Divider(
-                height: 1,
-                color: Styles.c_E8EAEF,
-                indent: 16.w,
-                endIndent: 16.w,
+            if (logic.isLoadingNews.value &&
+                logic.newsList.isEmpty &&
+                logic.hotNewsList.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final items = logic.newsFilter.value == 0
+                ? logic.newsList
+                : logic.hotNewsList;
+            if (items.isEmpty) {
+              return _buildEmpty();
+            }
+            return RefreshIndicator(
+              onRefresh: () => logic.refreshNews(),
+              child: ListView.separated(
+                padding: EdgeInsets.symmetric(vertical: 12.h),
+                itemCount: items.length,
+                separatorBuilder: (_, __) => Divider(
+                  height: 1,
+                  color: Styles.c_E8EAEF,
+                  indent: 16.w,
+                  endIndent: 16.w,
+                ),
+                itemBuilder: (_, i) => _buildArticleCard(items[i]),
               ),
-              itemBuilder: (_, i) => _buildArticleCard(items[i]),
             );
           }),
         ),
       ],
+    );
+  }
+
+  Widget _buildEmpty() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.article_outlined, size: 48.w, color: Styles.c_8E9AB0),
+          SizedBox(height: 12.h),
+          Text(
+            '暂无资讯',
+            style: TextStyle(color: Styles.c_8E9AB0, fontSize: 14.sp),
+          ),
+          SizedBox(height: 16.h),
+          TextButton(
+            onPressed: logic.refreshNews,
+            child: const Text('重试'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -238,62 +223,71 @@ class _WalletNewsTab extends StatelessWidget {
         ));
   }
 
-  Widget _buildArticleCard(_NewsItem item) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44.w,
-            height: 44.w,
-            decoration: BoxDecoration(
-              color: Styles.c_0089FF.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(10.r),
+  Widget _buildArticleCard(NewsPost post) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => launchUrl(
+        Uri.parse(post.url),
+        mode: LaunchMode.externalApplication,
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44.w,
+              height: 44.w,
+              decoration: BoxDecoration(
+                color: Styles.c_0089FF.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: Icon(Icons.article_outlined,
+                  color: Styles.c_0089FF, size: 22.w),
             ),
-            child: Icon(Icons.article_outlined,
-                color: Styles.c_0089FF, size: 22.w),
-          ),
-          SizedBox(width: 12.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Styles.c_0C1C33,
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    post.title,
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Styles.c_0C1C33,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  item.summary,
-                  style: TextStyle(fontSize: 13.sp, color: Styles.c_8E9AB0),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 6.h),
-                Row(
-                  children: [
-                    Text(item.source,
-                        style:
-                            TextStyle(fontSize: 11.sp, color: Styles.c_0089FF)),
-                    const Spacer(),
-                    Text(item.time,
-                        style:
-                            TextStyle(fontSize: 11.sp, color: Styles.c_8E9AB0)),
-                  ],
-                ),
-              ],
+                  SizedBox(height: 6.h),
+                  Row(
+                    children: [
+                      Text(
+                        post.source,
+                        style: TextStyle(fontSize: 11.sp, color: Styles.c_0089FF),
+                      ),
+                      const Spacer(),
+                      Text(
+                        _formatRelativeTime(post.publishedAt),
+                        style: TextStyle(fontSize: 11.sp, color: Styles.c_8E9AB0),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  String _formatRelativeTime(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}分钟前';
+    if (diff.inHours < 24) return '${diff.inHours}小时前';
+    return '${diff.inDays}天前';
   }
 }
 
@@ -336,22 +330,6 @@ class _FilterChip extends StatelessWidget {
       ),
     );
   }
-}
-
-class _NewsItem {
-  final String title;
-  final String summary;
-  final String source;
-  final String time;
-  final String tag;
-
-  const _NewsItem({
-    required this.title,
-    required this.summary,
-    required this.source,
-    required this.time,
-    required this.tag,
-  });
 }
 
 // ── Market Tab ────────────────────────────────────────────────────────────────
