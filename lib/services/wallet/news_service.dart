@@ -19,7 +19,7 @@ class NewsPost {
       title: m['title'] as String? ?? '',
       source: (m['source'] as Map<String, dynamic>?)?['title'] as String? ?? '',
       url: m['url'] as String? ?? '',
-      publishedAt: DateTime.tryParse(m['published_at'] as String? ?? '') ?? DateTime.now(),
+      publishedAt: DateTime.tryParse(m['published_at'] as String? ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
 }
@@ -28,6 +28,7 @@ class NewsService {
   static const _base = 'https://cryptopanic.com/api/v1/posts';
 
   // hot=false → 广场 (latest), hot=true → 公告 (hot filter)
+  // TODO: add auth_token= query param once a CryptoPanic API key is available
   static Future<List<NewsPost>> fetch({bool hot = false}) async {
     final uri = Uri.parse('$_base/?public=true${hot ? '&filter=hot' : ''}');
     try {

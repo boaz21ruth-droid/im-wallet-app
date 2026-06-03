@@ -27,5 +27,16 @@ void main() {
       final post = NewsPost.fromJson(json);
       expect(post.source, '');
     });
+
+    test('defaults publishedAt to epoch on bad timestamp', () {
+      final json = {
+        'title': '',
+        'url': '',
+        'published_at': 'not-a-date',
+        'source': <String, dynamic>{},
+      };
+      final post = NewsPost.fromJson(json);
+      expect(post.publishedAt, DateTime.fromMillisecondsSinceEpoch(0));
+    });
   });
 }
