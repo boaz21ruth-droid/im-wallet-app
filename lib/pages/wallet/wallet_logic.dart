@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import '../../services/wallet/chain_config.dart';
 import '../../services/wallet/evm_service.dart';
 import '../../services/wallet/market_service.dart';
+import '../../services/wallet/news_service.dart';
 import '../../services/wallet/mnemonic_vault.dart';
 import '../../services/wallet/tron_service.dart';
 import '../../services/wallet/wallet_key.dart';
@@ -27,10 +28,13 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
   final txHistory = <TxRecord>[].obs;
   final tokenHistory = <TxRecord>[].obs;
   final marketList = <CoinMarketData>[].obs;
+  final newsList    = <NewsPost>[].obs;
+  final hotNewsList = <NewsPost>[].obs;
 
   final isLoadingBalances = false.obs;
   final isLoadingPrices = false.obs;
   final isLoadingMarket = false.obs;
+  final isLoadingNews   = false.obs;
   final isLoadingTokenHistory = false.obs;
 
   final newsFilter = 0.obs; // 0=广场, 1=公告
@@ -356,6 +360,21 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
       marketList.assignAll(await MarketService.getMarketList());
     } finally {
       isLoadingMarket.value = false;
+    }
+  }
+
+  Future<void> refreshNews() async {
+    if (isLoadingNews.value) return;
+    isLoadingNews.value = true;
+    try {
+      final results = await Future.wait([
+        NewsService.fetch(hot: false),
+        NewsService.fetch(hot: true),
+      ]);
+      newsList.assignAll(results[0]);
+      hotNewsList.assignAll(results[1]);
+    } finally {
+      isLoadingNews.value = false;
     }
   }
 

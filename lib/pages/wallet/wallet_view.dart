@@ -31,6 +31,9 @@ class _WalletPageState extends State<WalletPage>
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
+      if (_tabController.index == 1 && logic.newsList.isEmpty) {
+        logic.refreshNews();
+      }
       if (_tabController.index == 3 && logic.marketList.isEmpty) {
         logic.refreshMarketList();
       }
