@@ -3,6 +3,8 @@ import 'dart:ui';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
 
+import '../../wallet/wallet_logic.dart';
+
 class LanguageSetupLogic extends GetxController {
   final isFollowSystem = false.obs;
   final isChinese = false.obs;
@@ -57,5 +59,14 @@ class LanguageSetupLogic extends GetxController {
         Get.updateLocale(window.locale);
         break;
     }
+    _refreshNewsIfWalletActive();
+  }
+
+  void _refreshNewsIfWalletActive() {
+    if (!Get.isRegistered<WalletLogic>()) return;
+    final w = Get.find<WalletLogic>();
+    w.newsList.clear();
+    w.hotNewsList.clear();
+    w.refreshNews();
   }
 }
