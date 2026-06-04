@@ -208,13 +208,13 @@ class _WalletNewsTab extends StatelessWidget {
           child: Row(
             children: [
               _FilterChip(
-                  label: '广场',
+                  label: '最新',
                   index: 0,
                   selectedIndex: logic.newsFilter.value,
                   onTap: () => logic.newsFilter.value = 0),
               SizedBox(width: 8.w),
               _FilterChip(
-                  label: '公告',
+                  label: '热门',
                   index: 1,
                   selectedIndex: logic.newsFilter.value,
                   onTap: () => logic.newsFilter.value = 1),
