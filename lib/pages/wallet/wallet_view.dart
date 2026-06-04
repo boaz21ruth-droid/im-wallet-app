@@ -12,6 +12,7 @@ import 'change_password_page.dart';
 import 'lock/wallet_lock_view.dart';
 import 'main/wallet_main_view.dart';
 import 'onboarding/wallet_onboard_view.dart';
+import 'dapp/dapp_tab.dart';
 import 'wallet_logic.dart';
 
 class WalletPage extends StatefulWidget {
@@ -128,7 +129,7 @@ class _WalletPageState extends State<WalletPage>
         children: [
           const WalletMainView(),
           _WalletNewsTab(),
-          _ComingSoonTab(icon: Icons.grid_3x3, label: 'DAPP'),
+          const DAppTab(),
           _WalletMarketTab(),
         ],
       ),
@@ -541,39 +542,6 @@ class _WalletMarketTab extends StatelessWidget {
   }
 }
 
-// ── Coming Soon Tab ───────────────────────────────────────────────────────────
-
-class _ComingSoonTab extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _ComingSoonTab({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 56.w, color: Styles.c_8E9AB0),
-          SizedBox(height: 16.h),
-          Text(
-            label,
-            style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w600,
-                color: Styles.c_0C1C33),
-          ),
-          SizedBox(height: 8.h),
-          Text(
-            '即将推出，敬请期待',
-            style: TextStyle(fontSize: 14.sp, color: Styles.c_8E9AB0),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // ── Wallet Settings Sheet ─────────────────────────────────────────────────────
 
