@@ -140,9 +140,12 @@ class EvmService {
     required String to,
     required BigInt value,
     int? gasLimit,
+    BigInt? gasPriceOverride,
   }) async {
     return _rpc((c) async {
-      final gasPrice = await c.getGasPrice();
+      final gasPrice = gasPriceOverride != null
+          ? EtherAmount.fromBigInt(EtherUnit.wei, gasPriceOverride)
+          : await c.getGasPrice();
       final tx = Transaction(
         to: EthereumAddress.fromHex(to),
         value: EtherAmount.fromBigInt(EtherUnit.wei, value),
@@ -159,6 +162,7 @@ class EvmService {
     required String to,
     required BigInt amount,
     int? gasLimit,
+    BigInt? gasPriceOverride,
   }) async {
     final contract = DeployedContract(
       ContractAbi.fromJson(_erc20TransferAbi, 'ERC20'),
@@ -166,7 +170,9 @@ class EvmService {
     );
     final fn = contract.function('transfer');
     return _rpc((c) async {
-      final gasPrice = await c.getGasPrice();
+      final gasPrice = gasPriceOverride != null
+          ? EtherAmount.fromBigInt(EtherUnit.wei, gasPriceOverride)
+          : await c.getGasPrice();
       final tx = Transaction.callContract(
         contract: contract,
         function: fn,
@@ -413,6 +419,7 @@ class EvmService {
     required BigInt value,
     BigInt? gasLimit,
     BigInt? gasPrice,
+    BigInt? gasPriceOverride,
   }) async {
     final hex = dataHex.startsWith('0x') ? dataHex.substring(2) : dataHex;
     if (hex.length.isOdd || !RegExp(r'^[0-9a-fA-F]*$').hasMatch(hex)) {
@@ -423,8 +430,9 @@ class EvmService {
     );
     return _rpc((c) async {
       final BigInt gp;
-      if (gasPrice != null) {
-        gp = gasPrice;
+      final override = gasPriceOverride ?? gasPrice;
+      if (override != null) {
+        gp = override;
       } else {
         final fetched = await c.getGasPrice();
         gp = fetched.getInWei;

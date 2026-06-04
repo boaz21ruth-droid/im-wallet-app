@@ -34,6 +34,12 @@ class WalletSendView extends StatefulWidget {
 }
 
 class _WalletSendViewState extends State<WalletSendView> {
+  static const _gasTiers = [
+    (label: '慢', multiplier: 0.8, desc: '~5 分钟'),
+    (label: '标准', multiplier: 1.0, desc: '~1 分钟'),
+    (label: '快', multiplier: 1.5, desc: '~15 秒'),
+  ];
+
   final logic = Get.find<WalletLogic>();
   final _addrCtrl = TextEditingController();
   final _amtCtrl = TextEditingController();
@@ -42,6 +48,8 @@ class _WalletSendViewState extends State<WalletSendView> {
   AssetBalance? _selectedAsset;
   BigInt _estimatedGas = BigInt.zero;
   BigInt _gasPrice = BigInt.zero;
+  BigInt _baseGasPrice = BigInt.zero;
+  int _gasTier = 1;
   bool _sending = false;
   String? _error;
   List<String> _recentAddrs = [];
@@ -108,7 +116,8 @@ class _WalletSendViewState extends State<WalletSendView> {
       final config = chains[chainKey];
       if (config == null) return;
       final svc = EvmService(config, chainKey, rpcsOverride: logic.swapConfigRpcs(chainKey));
-      _gasPrice = await svc.getGasPrice();
+      _baseGasPrice = await svc.getGasPrice();
+      _gasPrice = _baseGasPrice;
       final from = logic.currentAddress;
       final amtDouble = double.tryParse(amtText) ?? 0;
       final amtRaw = BigInt.from(amtDouble * BigInt.from(10).pow(asset.decimals).toDouble());
@@ -124,9 +133,21 @@ class _WalletSendViewState extends State<WalletSendView> {
     }
   }
 
+  bool get _isTron {
+    final chainKey = logic.selectedChainKey.value;
+    return chainKey == 'tron' || chainKey == 'tron_shasta';
+  }
+
+  BigInt get _effectiveGasPrice {
+    if (_baseGasPrice == BigInt.zero) return BigInt.zero;
+    return BigInt.from(
+        (_baseGasPrice.toDouble() * _gasTiers[_gasTier].multiplier).round());
+  }
+
   double get _gasCostEth {
-    if (_estimatedGas == BigInt.zero || _gasPrice == BigInt.zero) return 0;
-    final weiCost = _estimatedGas * _gasPrice;
+    final gp = _isTron ? _gasPrice : _effectiveGasPrice;
+    if (_estimatedGas == BigInt.zero || gp == BigInt.zero) return 0;
+    final weiCost = _estimatedGas * gp;
     return weiCost.toDouble() / 1e18;
   }
 
@@ -290,14 +311,21 @@ class _WalletSendViewState extends State<WalletSendView> {
             final config = chains[chainKey]!;
             final evmKey = WalletKey.deriveEVMKey(seed, logic.selectedAccount.value!.index);
             final svc = EvmService(config, chainKey, rpcsOverride: logic.swapConfigRpcs(chainKey));
+            final gpOverride = _effectiveGasPrice != BigInt.zero ? _effectiveGasPrice : null;
             if (asset.isNative) {
-              txHash = await svc.sendNative(senderKey: evmKey, to: to, value: amtRaw);
+              txHash = await svc.sendNative(
+                senderKey: evmKey,
+                to: to,
+                value: amtRaw,
+                gasPriceOverride: gpOverride,
+              );
             } else {
               txHash = await svc.sendToken(
                 senderKey: evmKey,
                 tokenContract: asset.contractAddress!,
                 to: to,
                 amount: amtRaw,
+                gasPriceOverride: gpOverride,
               );
             }
             svc.dispose();
@@ -394,6 +422,59 @@ class _WalletSendViewState extends State<WalletSendView> {
                 '预估手续费: ≈ ${_gasCostEth.toStringAsFixed(8)} ETH',
                 style: TextStyle(fontSize: 13.sp, color: Styles.c_8E9AB0),
               ),
+              if (!_isTron)
+                Padding(
+                  padding: EdgeInsets.only(top: 8.h),
+                  child: Row(
+                    children: List.generate(_gasTiers.length, (i) {
+                      final tier = _gasTiers[i];
+                      final isSelected = i == _gasTier;
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _gasTier = i),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 150),
+                            margin: EdgeInsets.only(right: i < 2 ? 6.w : 0),
+                            padding: EdgeInsets.symmetric(vertical: 8.h),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Styles.c_0089FF.withValues(alpha: 0.1)
+                                  : Styles.c_F8F9FA,
+                              borderRadius: BorderRadius.circular(8.r),
+                              border: Border.all(
+                                color: isSelected
+                                    ? Styles.c_0089FF
+                                    : Styles.c_E8EAEF,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  tier.label,
+                                  style: TextStyle(
+                                    fontSize: 13.sp,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    color: isSelected
+                                        ? Styles.c_0089FF
+                                        : Styles.c_0C1C33,
+                                  ),
+                                ),
+                                Text(
+                                  tier.desc,
+                                  style: TextStyle(
+                                      fontSize: 10.sp, color: Styles.c_8E9AB0),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ),
             ],
             if (_error != null) ...[
               SizedBox(height: 12.h),
