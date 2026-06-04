@@ -17,12 +17,12 @@ class NewsPost {
 
 class NewsService {
   static const _cointelegraphRss = 'https://cointelegraph.com/rss';
-  static const _coindeskRss = 'https://www.coindesk.com/feed';
+  static const _decryptRss = 'https://decrypt.co/feed';
 
-  // hot=false → 广场 (CoinTelegraph latest), hot=true → 公告 (CoinDesk latest)
+  // hot=false → 广场 (CoinTelegraph latest), hot=true → 公告 (Decrypt latest)
   static Future<List<NewsPost>> fetch({bool hot = false}) async {
-    final feedUrl = hot ? _coindeskRss : _cointelegraphRss;
-    final sourceName = hot ? 'CoinDesk' : 'CoinTelegraph';
+    final feedUrl = hot ? _decryptRss : _cointelegraphRss;
+    final sourceName = hot ? 'Decrypt' : 'CoinTelegraph';
     try {
       final resp = await http.get(Uri.parse(feedUrl));
       if (resp.statusCode != 200) return [];

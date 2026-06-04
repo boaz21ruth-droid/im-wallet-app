@@ -228,7 +228,7 @@ class _WalletNewsTab extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: () async {
         final uri = Uri.tryParse(post.url);
-        if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (uri != null) await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
       },
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
