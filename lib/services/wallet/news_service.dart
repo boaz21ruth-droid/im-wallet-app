@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 
@@ -17,14 +18,23 @@ class NewsPost {
 }
 
 class NewsService {
-  static const _cointelegraphRss = 'https://cointelegraph.com/rss';
-  static const _decryptRss       = 'https://decrypt.co/feed';
+  static const _cointelegraphRss   = 'https://cointelegraph.com/rss';
+  static const _cointelegraphZhRss = 'https://cointelegraph-cn.com/rss';
+  static const _decryptRss         = 'https://decrypt.co/feed';
 
-  // hot=false → 最新 (CoinTelegraph, always English)
-  // hot=false → 最新 (CoinTelegraph), hot=true → 热门 (Decrypt, always English)
+  // hot=false → 最新 (CoinTelegraph EN or CN based on locale)
+  // hot=true  → 热门 (Decrypt, always English)
   static Future<List<NewsPost>> fetch({bool hot = false}) async {
-    final feedUrl    = hot ? _decryptRss : _cointelegraphRss;
-    final sourceName = hot ? 'Decrypt' : 'CoinTelegraph';
+    final String feedUrl;
+    final String sourceName;
+    if (hot) {
+      feedUrl    = _decryptRss;
+      sourceName = 'Decrypt';
+    } else {
+      final isChinese = Get.locale?.languageCode == 'zh';
+      feedUrl    = isChinese ? _cointelegraphZhRss : _cointelegraphRss;
+      sourceName = 'CoinTelegraph';
+    }
     try {
       final resp = await http.get(Uri.parse(feedUrl));
       if (resp.statusCode != 200) return [];
