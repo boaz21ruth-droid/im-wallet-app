@@ -163,6 +163,21 @@ class _WalletSendViewState extends State<WalletSendView> {
       return;
     }
     setState(() => _error = null);
+    // Warn but don't block self-transfer
+    if (addr.toLowerCase() == logic.currentAddress.toLowerCase()) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('转给自己？'),
+          content: const Text('收款地址与当前钱包地址相同，仍需支付 Gas 费。确定继续吗？'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
+            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('继续')),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
     _showPasswordDialog();
   }
 
