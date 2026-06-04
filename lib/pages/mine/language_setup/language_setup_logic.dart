@@ -64,9 +64,6 @@ class LanguageSetupLogic extends GetxController {
 
   void _refreshNewsIfWalletActive() {
     if (!Get.isRegistered<WalletLogic>()) return;
-    final w = Get.find<WalletLogic>();
-    w.newsList.clear();
-    w.hotNewsList.clear();
-    w.refreshNews();
+    Get.find<WalletLogic>().refreshNews();
   }
 }
