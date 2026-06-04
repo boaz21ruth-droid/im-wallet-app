@@ -1,42 +1,53 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openim/services/wallet/news_service.dart';
 
+const _sampleRss = '''<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>Bitcoin hits new ATH</title>
+      <link>https://example.com/article</link>
+      <pubDate>Wed, 03 Jun 2026 10:00:03 +0000</pubDate>
+    </item>
+    <item>
+      <title>DeFi TVL surges</title>
+      <link>https://example.com/defi</link>
+      <pubDate>Wed, 03 Jun 2026 08:00:00 +0000</pubDate>
+    </item>
+  </channel>
+</rss>''';
+
+const _badDateRss = '''<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0">
+  <channel>
+    <item>
+      <title>Bad date item</title>
+      <link>https://example.com/bad</link>
+      <pubDate>not-a-date</pubDate>
+    </item>
+  </channel>
+</rss>''';
+
 void main() {
-  group('NewsPost.fromJson', () {
-    test('parses all fields correctly', () {
-      final json = {
-        'title': 'Bitcoin hits new ATH',
-        'url': 'https://example.com/article',
-        'published_at': '2026-06-03T10:00:00Z',
-        'source': {'title': 'CoinDesk'},
-      };
-      final post = NewsPost.fromJson(json);
-      expect(post.title, 'Bitcoin hits new ATH');
-      expect(post.url, 'https://example.com/article');
-      expect(post.source, 'CoinDesk');
-      expect(post.publishedAt, DateTime.utc(2026, 6, 3, 10, 0, 0));
+  group('NewsService.parseRss', () {
+    test('parses title, url, source, and publishedAt correctly', () {
+      final posts = NewsService.parseRss(_sampleRss, 'CoinTelegraph');
+      expect(posts.length, 2);
+      expect(posts[0].title, 'Bitcoin hits new ATH');
+      expect(posts[0].url, 'https://example.com/article');
+      expect(posts[0].source, 'CoinTelegraph');
+      expect(posts[0].publishedAt, DateTime.utc(2026, 6, 3, 10, 0, 3));
     });
 
-    test('handles missing source gracefully', () {
-      final json = {
-        'title': 'DeFi news',
-        'url': 'https://example.com/defi',
-        'published_at': '2026-06-01T08:00:00Z',
-        'source': <String, dynamic>{},
-      };
-      final post = NewsPost.fromJson(json);
-      expect(post.source, '');
+    test('defaults publishedAt to epoch on bad date', () {
+      final posts = NewsService.parseRss(_badDateRss, 'CoinDesk');
+      expect(posts.length, 1);
+      expect(posts[0].publishedAt, DateTime.fromMillisecondsSinceEpoch(0));
     });
 
-    test('defaults publishedAt to epoch on bad timestamp', () {
-      final json = {
-        'title': '',
-        'url': '',
-        'published_at': 'not-a-date',
-        'source': <String, dynamic>{},
-      };
-      final post = NewsPost.fromJson(json);
-      expect(post.publishedAt, DateTime.fromMillisecondsSinceEpoch(0));
+    test('returns empty list on malformed XML', () {
+      final posts = NewsService.parseRss('not xml at all', 'CoinTelegraph');
+      expect(posts, isEmpty);
     });
   });
 }

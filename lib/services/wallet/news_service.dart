@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:xml/xml.dart';
 
 class NewsPost {
   final String title;
@@ -13,34 +13,63 @@ class NewsPost {
     required this.url,
     required this.publishedAt,
   });
-
-  factory NewsPost.fromJson(Map<String, dynamic> m) {
-    return NewsPost(
-      title: m['title'] as String? ?? '',
-      source: (m['source'] as Map<String, dynamic>?)?['title'] as String? ?? '',
-      url: m['url'] as String? ?? '',
-      publishedAt: DateTime.tryParse(m['published_at'] as String? ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
-    );
-  }
 }
 
 class NewsService {
-  static const _base = 'https://cryptopanic.com/api/v1/posts';
+  static const _cointelegraphRss = 'https://cointelegraph.com/rss';
+  static const _coindeskRss = 'https://www.coindesk.com/feed';
 
-  // hot=false → 广场 (latest), hot=true → 公告 (hot filter)
-  // TODO: add auth_token= query param once a CryptoPanic API key is available
+  // hot=false → 广场 (CoinTelegraph latest), hot=true → 公告 (CoinDesk latest)
   static Future<List<NewsPost>> fetch({bool hot = false}) async {
-    final uri = Uri.parse('$_base/?public=true${hot ? '&filter=hot' : ''}');
+    final feedUrl = hot ? _coindeskRss : _cointelegraphRss;
+    final sourceName = hot ? 'CoinDesk' : 'CoinTelegraph';
     try {
-      final resp = await http.get(uri, headers: {'Accept': 'application/json'});
+      final resp = await http.get(Uri.parse(feedUrl));
       if (resp.statusCode != 200) return [];
-      final json = jsonDecode(resp.body) as Map<String, dynamic>;
-      final results = json['results'] as List? ?? [];
-      return results
-          .map((e) => NewsPost.fromJson(e as Map<String, dynamic>))
-          .toList();
+      return parseRss(resp.body, sourceName);
     } catch (_) {
       return [];
+    }
+  }
+
+  // Exposed for testing.
+  static List<NewsPost> parseRss(String xmlBody, String source) {
+    try {
+      final doc = XmlDocument.parse(xmlBody);
+      return doc.findAllElements('item').map((item) {
+        final title = item.findElements('title').firstOrNull?.innerText.trim() ?? '';
+        final link = item.findElements('link').firstOrNull?.innerText.trim() ?? '';
+        final pubDate = item.findElements('pubDate').firstOrNull?.innerText.trim() ?? '';
+        return NewsPost(
+          title: title,
+          source: source,
+          url: link,
+          publishedAt: _parseRfc2822(pubDate),
+        );
+      }).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  // Parses RFC 2822 date: "Wed, 03 Jun 2026 23:00:03 +0000"
+  static DateTime _parseRfc2822(String date) {
+    try {
+      final parts = date.trim().split(RegExp(r'\s+'));
+      if (parts.length < 5) return DateTime.fromMillisecondsSinceEpoch(0);
+      const months = {
+        'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+        'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+        'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12',
+      };
+      final day = parts[1].padLeft(2, '0');
+      final month = months[parts[2]] ?? '01';
+      final year = parts[3];
+      final time = parts[4];
+      return DateTime.tryParse('${year}-${month}-${day}T${time}Z') ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+    } catch (_) {
+      return DateTime.fromMillisecondsSinceEpoch(0);
     }
   }
 }

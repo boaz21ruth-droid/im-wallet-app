@@ -69,6 +69,7 @@ dependencies:
   crypto: ^3.0.2
   url_launcher: ^6.1.10
   http: ^1.1.0
+  xml: ^6.0.0
   common_utils: ^2.1.0
   uri_to_file: ^1.0.0
   map_launcher: ^4.4.2
