@@ -30,7 +30,7 @@ class NewsService {
     if (hot) {
       final isChinese = Get.locale?.languageCode == 'zh';
       feedUrl    = isChinese ? _decryptZhRss : _decryptRss;
-      sourceName = isChinese ? 'Decrypt 中文' : 'Decrypt';
+      sourceName = 'Decrypt';
     } else {
       feedUrl    = _cointelegraphRss;
       sourceName = 'CoinTelegraph';
