@@ -151,7 +151,7 @@ class _WalletSendViewState extends State<WalletSendView> {
     return weiCost.toDouble() / 1e18;
   }
 
-  void _showConfirm() {
+  Future<void> _showConfirm() async {
     final addr = _addrCtrl.text.trim();
     final amtText = _amtCtrl.text.trim();
     if (addr.isEmpty) {
