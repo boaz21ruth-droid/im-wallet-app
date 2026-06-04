@@ -18,8 +18,16 @@ import 'select_friend_address_page.dart';
 class WalletSendView extends StatefulWidget {
   final String? prefillAddress;
   final AssetBalance? prefillAsset;
+  final String? initialAddress;
+  final String? initialAmount;
 
-  const WalletSendView({super.key, this.prefillAddress, this.prefillAsset});
+  const WalletSendView({
+    super.key,
+    this.prefillAddress,
+    this.prefillAsset,
+    this.initialAddress,
+    this.initialAmount,
+  });
 
   @override
   State<WalletSendView> createState() => _WalletSendViewState();
@@ -42,6 +50,15 @@ class _WalletSendViewState extends State<WalletSendView> {
     super.initState();
     if (widget.prefillAddress != null) _addrCtrl.text = widget.prefillAddress!;
     _selectedAsset = widget.prefillAsset ?? logic.currentChainBalances.firstOrNull;
+    if (widget.initialAddress != null) {
+      _addrCtrl.text = widget.initialAddress!;
+    }
+    if (widget.initialAmount != null) {
+      final amt = widget.initialAmount!;
+      if (amt.contains('.') || (int.tryParse(amt) != null && int.parse(amt) < 1000)) {
+        _amtCtrl.text = amt;
+      }
+    }
   }
 
   @override

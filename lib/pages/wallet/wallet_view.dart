@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
+import 'package:flutter_zxing/flutter_zxing.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
@@ -13,6 +14,7 @@ import 'lock/wallet_lock_view.dart';
 import 'main/wallet_main_view.dart';
 import 'onboarding/wallet_onboard_view.dart';
 import 'dapp/dapp_tab.dart';
+import 'send/wallet_send_view.dart';
 import 'wallet_logic.dart';
 
 class WalletPage extends StatefulWidget {
@@ -93,8 +95,22 @@ class _WalletPageState extends State<WalletPage>
           IconButton(
             icon:
                 Icon(Icons.qr_code_scanner, color: Styles.c_0C1C33, size: 22.w),
-            onPressed: () {
-              // QR scan for receiving
+            onPressed: () async {
+              final result = await Get.to<String?>(() => const _WalletQRScanPage());
+              if (result == null || result.isEmpty) return;
+              String address = result;
+              String? rawAmount;
+              if (result.startsWith('ethereum:') || result.startsWith('tron:')) {
+                final uri = Uri.tryParse(result);
+                if (uri != null) {
+                  address = uri.path;
+                  rawAmount = uri.queryParameters['value'];
+                }
+              }
+              Get.to(() => WalletSendView(
+                initialAddress: address,
+                initialAmount: rawAmount,
+              ));
             },
           ),
           IconButton(
@@ -880,5 +896,29 @@ class _WalletSettingsSheetState extends State<_WalletSettingsSheet> {
       debugPrint('deleteLocalWallet failed: $e\n$st');
       EasyLoading.showError('删除失败：$e');
     }
+  }
+}
+
+// ── QR Scan Page ──────────────────────────────────────────────────────────────
+
+class _WalletQRScanPage extends StatelessWidget {
+  const _WalletQRScanPage();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('扫描 QR 码'),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+      ),
+      body: ReaderWidget(
+        onScan: (code) {
+          if (code.isValid && code.text != null) {
+            Get.back(result: code.text);
+          }
+        },
+      ),
+    );
   }
 }
