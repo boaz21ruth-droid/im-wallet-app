@@ -243,6 +243,14 @@ class _NewsArticleCardState extends State<_NewsArticleCard> {
   bool get _isChinese => Get.locale?.languageCode == 'zh';
   bool get _needsTranslate => _isChinese && widget.post.source == 'CoinTelegraph';
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_needsTranslate && _translatedTitle != null) {
+      _translatedTitle = null;
+    }
+  }
+
   Future<void> _translate() async {
     if (_isTranslating) return;
     if (_translatedTitle != null) {
@@ -324,25 +332,28 @@ class _NewsArticleCardState extends State<_NewsArticleCard> {
                         SizedBox(width: 8.w),
                         GestureDetector(
                           onTap: _translate,
-                          child: _isTranslating
-                              ? SizedBox(
-                                  width: 12.w,
-                                  height: 12.w,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 1.5,
-                                    color: Styles.c_8E9AB0,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 4.h),
+                            child: _isTranslating
+                                ? SizedBox(
+                                    width: 12.w,
+                                    height: 12.w,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 1.5,
+                                      color: Styles.c_8E9AB0,
+                                    ),
+                                  )
+                                : Text(
+                                    _translatedTitle != null ? '原' : '译',
+                                    style: TextStyle(
+                                      fontSize: 11.sp,
+                                      color: _translatedTitle != null
+                                          ? Styles.c_0089FF
+                                          : Styles.c_8E9AB0,
+                                      fontWeight: FontWeight.w500,
+                                    ),
                                   ),
-                                )
-                              : Text(
-                                  _translatedTitle != null ? '原' : '译',
-                                  style: TextStyle(
-                                    fontSize: 11.sp,
-                                    color: _translatedTitle != null
-                                        ? Styles.c_0089FF
-                                        : Styles.c_8E9AB0,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                          ),
                         ),
                       ],
                     ],
