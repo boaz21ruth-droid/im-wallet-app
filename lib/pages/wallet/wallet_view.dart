@@ -227,10 +227,46 @@ class _WalletNewsTab extends StatelessWidget {
 
 // ── News Article Card ─────────────────────────────────────────────────────────
 
-class _NewsArticleCard extends StatelessWidget {
+class _NewsArticleCard extends StatefulWidget {
   final NewsPost post;
 
   const _NewsArticleCard({required this.post});
+
+  @override
+  State<_NewsArticleCard> createState() => _NewsArticleCardState();
+}
+
+class _NewsArticleCardState extends State<_NewsArticleCard> {
+  String? _translatedTitle;
+  bool _isTranslating = false;
+
+  bool get _isChinese => Get.locale?.languageCode == 'zh';
+  // Show translate button when app is Chinese and article is from Decrypt (always English).
+  bool get _needsTranslate => _isChinese && widget.post.source == 'Decrypt';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_needsTranslate && _translatedTitle != null) {
+      _translatedTitle = null;
+    }
+  }
+
+  Future<void> _translate() async {
+    if (_isTranslating) return;
+    if (_translatedTitle != null) {
+      setState(() => _translatedTitle = null);
+      return;
+    }
+    setState(() => _isTranslating = true);
+    final result = await NewsService.translateTitle(widget.post.title);
+    if (mounted) {
+      setState(() {
+        _translatedTitle = result;
+        _isTranslating = false;
+      });
+    }
+  }
 
   String _formatRelativeTime(DateTime dt) {
     final diff = DateTime.now().difference(dt);
@@ -242,10 +278,11 @@ class _NewsArticleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayTitle = _translatedTitle ?? widget.post.title;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () async {
-        final uri = Uri.tryParse(post.url);
+        final uri = Uri.tryParse(widget.post.url);
         if (uri != null) await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
       },
       child: Padding(
@@ -269,7 +306,7 @@ class _NewsArticleCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    post.title,
+                    displayTitle,
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
@@ -282,16 +319,45 @@ class _NewsArticleCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        post.source,
+                        widget.post.source,
                         style: TextStyle(
                             fontSize: 11.sp, color: Styles.c_0089FF),
                       ),
                       const Spacer(),
                       Text(
-                        _formatRelativeTime(post.publishedAt),
+                        _formatRelativeTime(widget.post.publishedAt),
                         style: TextStyle(
                             fontSize: 11.sp, color: Styles.c_8E9AB0),
                       ),
+                      if (_needsTranslate) ...[
+                        SizedBox(width: 8.w),
+                        GestureDetector(
+                          onTap: _translate,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 6.w, vertical: 4.h),
+                            child: _isTranslating
+                                ? SizedBox(
+                                    width: 12.w,
+                                    height: 12.w,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 1.5,
+                                      color: Styles.c_8E9AB0,
+                                    ),
+                                  )
+                                : Text(
+                                    _translatedTitle != null ? '原' : '译',
+                                    style: TextStyle(
+                                      fontSize: 11.sp,
+                                      color: _translatedTitle != null
+                                          ? Styles.c_0089FF
+                                          : Styles.c_8E9AB0,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ],
