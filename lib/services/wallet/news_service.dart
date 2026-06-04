@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 
@@ -20,21 +19,12 @@ class NewsPost {
 class NewsService {
   static const _cointelegraphRss = 'https://cointelegraph.com/rss';
   static const _decryptRss       = 'https://decrypt.co/feed';
-  static const _decryptZhRss     = 'https://decrypt.co/zh-hans/feed';
 
   // hot=false → 最新 (CoinTelegraph, always English)
-  // hot=true  → 热门 (Decrypt, language depends on Get.locale)
+  // hot=false → 最新 (CoinTelegraph), hot=true → 热门 (Decrypt, always English)
   static Future<List<NewsPost>> fetch({bool hot = false}) async {
-    final String feedUrl;
-    final String sourceName;
-    if (hot) {
-      final isChinese = Get.locale?.languageCode == 'zh';
-      feedUrl    = isChinese ? _decryptZhRss : _decryptRss;
-      sourceName = 'Decrypt';
-    } else {
-      feedUrl    = _cointelegraphRss;
-      sourceName = 'CoinTelegraph';
-    }
+    final feedUrl    = hot ? _decryptRss : _cointelegraphRss;
+    final sourceName = hot ? 'Decrypt' : 'CoinTelegraph';
     try {
       final resp = await http.get(Uri.parse(feedUrl));
       if (resp.statusCode != 200) return [];
