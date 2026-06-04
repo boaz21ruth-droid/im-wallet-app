@@ -1,17 +1,63 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:openim_common/openim_common.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../services/wallet/chain_config.dart';
 import '../wallet_logic.dart';
 
-class WalletReceiveView extends StatelessWidget {
+class WalletReceiveView extends StatefulWidget {
   const WalletReceiveView({super.key});
 
+  @override
+  State<WalletReceiveView> createState() => _WalletReceiveViewState();
+}
+
+class _WalletReceiveViewState extends State<WalletReceiveView> {
+  final _qrKey = GlobalKey();
+
   WalletLogic get logic => Get.find<WalletLogic>();
+
+  Future<void> _saveQrCode(String address, String chainName) async {
+    // Request permission (Android 13+ uses photos permission, older uses storage)
+    final status = await Permission.photos.request();
+    if (!status.isGranted) {
+      // Fallback for older Android
+      final storage = await Permission.storage.request();
+      if (!storage.isGranted) {
+        EasyLoading.showToast('需要相册权限才能保存图片');
+        return;
+      }
+    }
+
+    try {
+      EasyLoading.show(status: '保存中…');
+      final boundary = _qrKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) throw Exception('图像编码失败');
+      final pngBytes = byteData.buffer.asUint8List();
+      final result = await ImageGallerySaverPlus.saveImage(
+        pngBytes,
+        name: 'qr_${chainName}_${address.substring(0, 8)}',
+      );
+      EasyLoading.dismiss();
+      if (result['isSuccess'] == true || result['filePath'] != null) {
+        EasyLoading.showToast('二维码已保存到相册');
+      } else {
+        EasyLoading.showToast('保存失败，请重试');
+      }
+    } catch (e) {
+      EasyLoading.dismiss();
+      EasyLoading.showToast('保存失败：$e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,27 +98,20 @@ class WalletReceiveView extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 32.h),
-              Container(
-                padding: EdgeInsets.all(16.w),
-                decoration: BoxDecoration(
-                  color: Styles.c_FFFFFF,
-                  borderRadius: BorderRadius.circular(20.r),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+              RepaintBoundary(
+                key: _qrKey,
+                child: Container(
+                  padding: EdgeInsets.all(16.w),
+                  color: Colors.white,
+                  child: address.isNotEmpty
+                      ? QrImageView(
+                          data: address,
+                          version: QrVersions.auto,
+                          size: 220.w,
+                          backgroundColor: Colors.white,
+                        )
+                      : SizedBox(height: 220.h),
                 ),
-                child: address.isNotEmpty
-                    ? QrImageView(
-                        data: address,
-                        version: QrVersions.auto,
-                        size: 220.w,
-                        backgroundColor: Colors.white,
-                      )
-                    : SizedBox(height: 220.h),
               ),
               SizedBox(height: 24.h),
               Container(
@@ -121,6 +160,28 @@ class WalletReceiveView extends StatelessWidget {
                       borderRadius: BorderRadius.circular(14.r),
                     ),
                     elevation: 0,
+                  ),
+                ),
+              ),
+              SizedBox(height: 12.h),
+              SizedBox(
+                width: double.infinity,
+                height: 52.h,
+                child: OutlinedButton.icon(
+                  onPressed: address.isNotEmpty
+                      ? () => _saveQrCode(address, chainName)
+                      : null,
+                  icon: const Icon(Icons.save_alt, size: 18),
+                  label: Text(
+                    '保存二维码',
+                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.w600),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Styles.c_0089FF,
+                    side: BorderSide(color: Styles.c_0089FF),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14.r),
+                    ),
                   ),
                 ),
               ),

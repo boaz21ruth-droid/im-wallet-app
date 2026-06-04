@@ -1262,7 +1262,7 @@ packages:
     source: hosted
     version: "7.2.0"
   image_gallery_saver_plus:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: image_gallery_saver_plus
       sha256: "199b9e24f8d85e98f11e3d35571ab68ae50626ad40e2bb85c84383f69a6950ad"
