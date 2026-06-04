@@ -50,4 +50,11 @@ void main() {
       expect(posts, isEmpty);
     });
   });
+
+  group('NewsService.translateTitle', () {
+    test('returns null for empty string without throwing', () async {
+      final result = await NewsService.translateTitle('');
+      expect(result, anyOf(isNull, isEmpty));
+    });
+  });
 }
