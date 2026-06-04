@@ -48,15 +48,32 @@ class _WalletSendViewState extends State<WalletSendView> {
   @override
   void initState() {
     super.initState();
-    if (widget.prefillAddress != null) _addrCtrl.text = widget.prefillAddress!;
     _selectedAsset = widget.prefillAsset ?? logic.currentChainBalances.firstOrNull;
-    if (widget.initialAddress != null) {
-      _addrCtrl.text = widget.initialAddress!;
+    final addrToFill = widget.initialAddress ?? widget.prefillAddress;
+    if (addrToFill != null) {
+      _addrCtrl.text = addrToFill;
     }
     if (widget.initialAmount != null) {
       final amt = widget.initialAmount!;
-      if (amt.contains('.') || (int.tryParse(amt) != null && int.parse(amt) < 1000)) {
+      if (amt.contains('.')) {
+        // Already a decimal string — use as-is
         _amtCtrl.text = amt;
+      } else {
+        final wei = BigInt.tryParse(amt);
+        if (wei != null && wei > BigInt.zero) {
+          // Assume 18 decimals (EIP-681 standard for ETH/EVM native)
+          final decimals = _selectedAsset?.decimals ?? 18;
+          final divisor = BigInt.from(10).pow(decimals);
+          final whole = wei ~/ divisor;
+          final remainder = wei % divisor;
+          if (remainder == BigInt.zero) {
+            _amtCtrl.text = whole.toString();
+          } else {
+            final fracStr = remainder.toString().padLeft(decimals, '0');
+            final trimmed = fracStr.replaceAll(RegExp(r'0+$'), '');
+            _amtCtrl.text = '$whole.$trimmed';
+          }
+        }
       }
     }
   }
