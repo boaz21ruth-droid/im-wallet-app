@@ -172,7 +172,7 @@ class _WalletNewsTab extends StatelessWidget {
                   indent: 16.w,
                   endIndent: 16.w,
                 ),
-                itemBuilder: (_, i) => _buildArticleCard(items[i]),
+                itemBuilder: (_, i) => _NewsArticleCard(post: items[i]),
               ),
             );
           }),
@@ -223,11 +223,57 @@ class _WalletNewsTab extends StatelessWidget {
         ));
   }
 
-  Widget _buildArticleCard(NewsPost post) {
+}
+
+// ── News Article Card ─────────────────────────────────────────────────────────
+
+class _NewsArticleCard extends StatefulWidget {
+  final NewsPost post;
+
+  const _NewsArticleCard({required this.post});
+
+  @override
+  State<_NewsArticleCard> createState() => _NewsArticleCardState();
+}
+
+class _NewsArticleCardState extends State<_NewsArticleCard> {
+  String? _translatedTitle;
+  bool _isTranslating = false;
+
+  bool get _isChinese => Get.locale?.languageCode == 'zh';
+  bool get _needsTranslate => _isChinese && widget.post.source == 'CoinTelegraph';
+
+  Future<void> _translate() async {
+    if (_isTranslating) return;
+    if (_translatedTitle != null) {
+      setState(() => _translatedTitle = null);
+      return;
+    }
+    setState(() => _isTranslating = true);
+    final result = await NewsService.translateTitle(widget.post.title);
+    if (mounted) {
+      setState(() {
+        _translatedTitle = result;
+        _isTranslating = false;
+      });
+    }
+  }
+
+  String _formatRelativeTime(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 1) return '刚刚';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}分钟前';
+    if (diff.inHours < 24) return '${diff.inHours}小时前';
+    return '${diff.inDays}天前';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final displayTitle = _translatedTitle ?? widget.post.title;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () async {
-        final uri = Uri.tryParse(post.url);
+        final uri = Uri.tryParse(widget.post.url);
         if (uri != null) await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
       },
       child: Padding(
@@ -251,7 +297,7 @@ class _WalletNewsTab extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    post.title,
+                    displayTitle,
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
@@ -264,14 +310,41 @@ class _WalletNewsTab extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        post.source,
-                        style: TextStyle(fontSize: 11.sp, color: Styles.c_0089FF),
+                        widget.post.source,
+                        style: TextStyle(
+                            fontSize: 11.sp, color: Styles.c_0089FF),
                       ),
                       const Spacer(),
                       Text(
-                        _formatRelativeTime(post.publishedAt),
-                        style: TextStyle(fontSize: 11.sp, color: Styles.c_8E9AB0),
+                        _formatRelativeTime(widget.post.publishedAt),
+                        style: TextStyle(
+                            fontSize: 11.sp, color: Styles.c_8E9AB0),
                       ),
+                      if (_needsTranslate) ...[
+                        SizedBox(width: 8.w),
+                        GestureDetector(
+                          onTap: _translate,
+                          child: _isTranslating
+                              ? SizedBox(
+                                  width: 12.w,
+                                  height: 12.w,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 1.5,
+                                    color: Styles.c_8E9AB0,
+                                  ),
+                                )
+                              : Text(
+                                  _translatedTitle != null ? '原' : '译',
+                                  style: TextStyle(
+                                    fontSize: 11.sp,
+                                    color: _translatedTitle != null
+                                        ? Styles.c_0089FF
+                                        : Styles.c_8E9AB0,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                        ),
+                      ],
                     ],
                   ),
                 ],
@@ -281,13 +354,6 @@ class _WalletNewsTab extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatRelativeTime(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}分钟前';
-    if (diff.inHours < 24) return '${diff.inHours}小时前';
-    return '${diff.inDays}天前';
   }
 }
 
