@@ -38,7 +38,7 @@ class NewsService {
     try {
       final resp = await http.get(Uri.parse(feedUrl));
       if (resp.statusCode != 200) return [];
-      return parseRss(resp.body, sourceName);
+      return parseRss(utf8.decode(resp.bodyBytes), sourceName);
     } catch (_) {
       return [];
     }
