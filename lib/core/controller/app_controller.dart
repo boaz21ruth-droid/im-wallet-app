@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:audio_session/audio_session.dart';
@@ -97,17 +98,33 @@ class AppController extends GetxController with UpgradeManger {
     }
 
     if (showNotification) {
-      promptSoundOrNotification(message.seq!);
+      promptSoundOrNotification(message.seq!, message: message);
     }
   }
 
-  Future<void> promptSoundOrNotification(int seq) async {
+  Future<void> promptSoundOrNotification(int seq, {im.Message? message}) async {
     if (Get.find<IMController>().imSdkStatusSubject.values.lastOrNull?.status != IMSdkStatus.syncEnded) {
       return;
     }
     if (!isRunningBackground) {
       _playMessageSound();
     } else {
+      String title = 'OpenIM';
+      String body = '您有新消息';
+
+      if (message?.contentType == 1400) {
+        try {
+          final data = jsonDecode(message!.customElem?.data ?? '{}') as Map<String, dynamic>;
+          final direction = data['direction'] as String? ?? '';
+          final amount = data['amount'] as String? ?? '';
+          final symbol = data['symbol'] as String? ?? '';
+          title = direction == 'received' ? '收款通知' : '转账确认';
+          body = direction == 'received'
+              ? '已收到 $amount $symbol'
+              : '转账 $amount $symbol 已确认';
+        } catch (_) {}
+      }
+
       if (Platform.isAndroid) {
         final id = seq;
 
@@ -115,8 +132,17 @@ class AppController extends GetxController with UpgradeManger {
             channelDescription: 'OpenIM Chat Message', importance: Importance.max, priority: Priority.high, ticker: 'ticker');
         const NotificationDetails platformChannelSpecifics =
             NotificationDetails(android: androidPlatformChannelSpecifics);
-        await flutterLocalNotificationsPlugin.show(id, 'You have a new message', 'Message：.....', platformChannelSpecifics,
-            payload: '');
+        await flutterLocalNotificationsPlugin.show(id, title, body, platformChannelSpecifics, payload: '');
+      } else if (Platform.isIOS) {
+        const iosPlatformChannelSpecifics = DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        );
+        const NotificationDetails iosNotificationDetails =
+            NotificationDetails(iOS: iosPlatformChannelSpecifics);
+        await flutterLocalNotificationsPlugin.show(
+            seq, title, body, iosNotificationDetails, payload: '');
       }
     }
   }
