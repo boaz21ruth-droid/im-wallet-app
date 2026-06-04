@@ -58,10 +58,12 @@ class NewsService {
         'dt': 't',
         'q': text,
       });
-      final resp = await http.get(uri);
+      final resp = await http.get(uri).timeout(const Duration(seconds: 8));
       if (resp.statusCode != 200) return null;
       final data = jsonDecode(resp.body) as List;
-      return (data[0] as List).map((e) => e[0] as String).join();
+      return (data[0] as List)
+          .map((e) => (e is List && e.isNotEmpty) ? e[0]?.toString() ?? '' : '')
+          .join();
     } catch (_) {
       return null;
     }
