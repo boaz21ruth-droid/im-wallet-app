@@ -44,6 +44,7 @@ class _WalletSendViewState extends State<WalletSendView> {
   BigInt _gasPrice = BigInt.zero;
   bool _sending = false;
   String? _error;
+  List<String> _recentAddrs = [];
 
   @override
   void initState() {
@@ -53,6 +54,16 @@ class _WalletSendViewState extends State<WalletSendView> {
     if (addrToFill != null) {
       _addrCtrl.text = addrToFill;
     }
+    // Extract up to 5 unique recent recipient addresses (not self)
+    final myAddresses = logic.accounts.expand((a) => a.addresses.values).toSet();
+    final seen = <String>{};
+    _recentAddrs = logic.txHistory
+        .where((t) => t.to.isNotEmpty && !myAddresses.contains(t.to))
+        .map((t) => t.to)
+        .where(seen.add)
+        .take(5)
+        .toList();
+
     if (widget.initialAmount != null) {
       final amt = widget.initialAmount!;
       if (amt.contains('.')) {
@@ -422,44 +433,93 @@ class _WalletSendViewState extends State<WalletSendView> {
   }
 
   Widget _buildAddressField() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Styles.c_FFFFFF,
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Styles.c_E8EAEF),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _addrCtrl,
-              style: TextStyle(fontSize: 14.sp, color: Styles.c_0C1C33),
-              decoration: InputDecoration(
-                hintText: '粘贴或扫描地址',
-                hintStyle: TextStyle(color: Styles.c_8E9AB0, fontSize: 13.sp),
-                contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
-                border: InputBorder.none,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Styles.c_FFFFFF,
+            borderRadius: BorderRadius.circular(12.r),
+            border: Border.all(color: Styles.c_E8EAEF),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _addrCtrl,
+                  style: TextStyle(fontSize: 14.sp, color: Styles.c_0C1C33),
+                  decoration: InputDecoration(
+                    hintText: '粘贴或扫描地址',
+                    hintStyle: TextStyle(color: Styles.c_8E9AB0, fontSize: 13.sp),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 14.w, vertical: 14.h),
+                    border: InputBorder.none,
+                  ),
+                  onChanged: (_) => setState(() => _error = null),
+                ),
               ),
-              onChanged: (_) => setState(() => _error = null),
+              IconButton(
+                icon: Icon(Icons.person_search_rounded, color: Styles.c_0089FF, size: 22.w),
+                onPressed: _pickFriendAddress,
+                tooltip: '从联系人选择',
+              ),
+              IconButton(
+                icon: Icon(Icons.content_paste_rounded, color: Styles.c_0089FF, size: 22.w),
+                onPressed: _pasteAddress,
+                tooltip: '粘贴地址',
+              ),
+              IconButton(
+                icon: Icon(Icons.qr_code_scanner, color: Styles.c_0089FF, size: 22.w),
+                onPressed: _scanQR,
+                tooltip: '扫描二维码',
+              ),
+            ],
+          ),
+        ),
+        if (_recentAddrs.isNotEmpty && _addrCtrl.text.isEmpty)
+          Padding(
+            padding: EdgeInsets.only(top: 8.h),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '最近转账',
+                  style: TextStyle(fontSize: 11.sp, color: Styles.c_8E9AB0),
+                ),
+                SizedBox(height: 6.h),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: _recentAddrs.map((addr) {
+                      final short =
+                          '${addr.substring(0, 6)}…${addr.substring(addr.length - 4)}';
+                      return GestureDetector(
+                        onTap: () => setState(() {
+                          _addrCtrl.text = addr;
+                          _error = null;
+                        }),
+                        child: Container(
+                          margin: EdgeInsets.only(right: 8.w),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 10.w, vertical: 5.h),
+                          decoration: BoxDecoration(
+                            color: Styles.c_F8F9FA,
+                            borderRadius: BorderRadius.circular(20.r),
+                            border: Border.all(color: Styles.c_E8EAEF),
+                          ),
+                          child: Text(
+                            short,
+                            style: TextStyle(
+                                fontSize: 12.sp, color: Styles.c_0C1C33),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ],
             ),
           ),
-          IconButton(
-            icon: Icon(Icons.person_search_rounded, color: Styles.c_0089FF, size: 22.w),
-            onPressed: _pickFriendAddress,
-            tooltip: '从联系人选择',
-          ),
-          IconButton(
-            icon: Icon(Icons.content_paste_rounded, color: Styles.c_0089FF, size: 22.w),
-            onPressed: _pasteAddress,
-            tooltip: '粘贴地址',
-          ),
-          IconButton(
-            icon: Icon(Icons.qr_code_scanner, color: Styles.c_0089FF, size: 22.w),
-            onPressed: _scanQR,
-            tooltip: '扫描二维码',
-          ),
-        ],
-      ),
+      ],
     );
   }
 
