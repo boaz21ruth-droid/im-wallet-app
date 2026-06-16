@@ -98,7 +98,7 @@ class WalletSettings {
         currency: 'USD',
         autoLockSeconds: 300,
         biometricEnabled: false,
-        enabledChainKeys: ['eth', 'bsc', 'polygon'],
+        enabledChainKeys: ['eth', 'bsc', 'polygon', 'tron'],
         customTokens: [],
         testnetMode: false,
       );
@@ -133,7 +133,7 @@ class WalletSettings {
         currency: json['currency'] as String? ?? 'USD',
         autoLockSeconds: json['autoLockSeconds'] as int? ?? 300,
         biometricEnabled: json['biometricEnabled'] as bool? ?? false,
-        enabledChainKeys: List<String>.from(json['enabledChainKeys'] as List? ?? ['eth']),
+        enabledChainKeys: List<String>.from(json['enabledChainKeys'] as List? ?? ['eth', 'bsc', 'polygon', 'tron']),
         customTokens: (json['customTokens'] as List? ?? [])
             .map((e) => CustomToken.fromJson(e as Map<String, dynamic>))
             .toList(),

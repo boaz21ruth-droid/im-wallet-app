@@ -62,8 +62,12 @@ class TronService {
   Future<BigInt> getTrxBalance(String tronAddress) async {
     try {
       final resp = await _get<Map<String, dynamic>>('/v1/accounts/$tronAddress');
-      final data = resp.data ?? {};
-      return BigInt.from(data['balance'] as int? ?? 0);
+      final raw = resp.data ?? {};
+      final list = raw['data'] as List? ?? [];
+      if (list.isEmpty) return BigInt.zero;
+      final account = list.first as Map<String, dynamic>;
+      final balance = account['balance'];
+      return BigInt.from(balance as int? ?? 0);
     } catch (_) {
       return BigInt.zero;
     }
@@ -87,21 +91,62 @@ class TronService {
 
   Future<List<AssetBalance>> getAllBalances(String address) async {
     final cfg = chains[chainKey]!;
-    final nativeSymbol = cfg.symbol;
-    final trx = await getTrxBalance(address);
-    final balances = <AssetBalance>[
-      AssetBalance(chainKey: chainKey, symbol: nativeSymbol, rawBalance: trx, decimals: cfg.decimals),
-    ];
-    for (final token in cfg.builtinTokens) {
-      final raw = await getTrc20Balance(address, token.contractAddress);
+    final balances = <AssetBalance>[];
+
+    try {
+      final resp = await _get<Map<String, dynamic>>('/v1/accounts/$address');
+      final raw = resp.data ?? {};
+      final list = raw['data'] as List? ?? [];
+
+      BigInt trx = BigInt.zero;
+      final trc20Map = <String, String>{};
+
+      if (list.isNotEmpty) {
+        final account = list.first as Map<String, dynamic>;
+        trx = BigInt.from(account['balance'] as int? ?? 0);
+
+        // trc20 field: [{contractAddress: balanceString}, ...]
+        for (final item in (account['trc20'] as List? ?? [])) {
+          final m = item as Map<String, dynamic>;
+          m.forEach((k, v) => trc20Map[k] = v.toString());
+        }
+      }
+
       balances.add(AssetBalance(
         chainKey: chainKey,
-        symbol: token.symbol,
-        rawBalance: raw,
-        decimals: token.decimals,
-        contractAddress: token.contractAddress,
+        symbol: cfg.symbol,
+        rawBalance: trx,
+        decimals: cfg.decimals,
       ));
+
+      for (final token in cfg.builtinTokens) {
+        final rawStr = trc20Map[token.contractAddress] ?? '0';
+        balances.add(AssetBalance(
+          chainKey: chainKey,
+          symbol: token.symbol,
+          rawBalance: BigInt.tryParse(rawStr) ?? BigInt.zero,
+          decimals: token.decimals,
+          contractAddress: token.contractAddress,
+        ));
+      }
+    } catch (_) {
+      balances.add(AssetBalance(
+        chainKey: chainKey,
+        symbol: cfg.symbol,
+        rawBalance: BigInt.zero,
+        decimals: cfg.decimals,
+      ));
+      for (final token in cfg.builtinTokens) {
+        balances.add(AssetBalance(
+          chainKey: chainKey,
+          symbol: token.symbol,
+          rawBalance: BigInt.zero,
+          decimals: token.decimals,
+          contractAddress: token.contractAddress,
+        ));
+      }
     }
+
     return balances;
   }
 

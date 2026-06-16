@@ -68,7 +68,7 @@ class Config {
   static const _host = '192.168.110.161';
 
   // true = route through Caddy on port 80 (path-based); false = direct service ports
-  static const _useCaddy = true;
+  static const _useCaddy = false;
 
   static const _ipRegex = '((2[0-4]\\d|25[0-5]|[01]?\\d\\d?)\\.){3}(2[0-4]\\d|25[0-5]|[01]?\\d\\d?)';
 

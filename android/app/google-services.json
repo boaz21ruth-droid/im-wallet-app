@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "xxx",
         "android_client_info": {
-          "package_name": "io.openim.flutter.demo"
+          "package_name": "io.openim.imwallet"
         }
       },
       "oauth_client": [],

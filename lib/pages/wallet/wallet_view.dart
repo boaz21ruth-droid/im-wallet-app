@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 import 'package:openim_common/openim_common.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../services/wallet/chain_config.dart';
 import '../../services/wallet/market_service.dart';
 import '../../services/wallet/news_service.dart';
 import '../../services/wallet/wallet_models.dart';
@@ -430,72 +431,176 @@ class _FilterChip extends StatelessWidget {
 
 // ── Market Tab ────────────────────────────────────────────────────────────────
 
-class _WalletMarketTab extends StatelessWidget {
-  final logic = Get.find<WalletLogic>();
-
+class _WalletMarketTab extends StatefulWidget {
   _WalletMarketTab();
 
   @override
+  State<_WalletMarketTab> createState() => _WalletMarketTabState();
+}
+
+class _WalletMarketTabState extends State<_WalletMarketTab> {
+  final logic = Get.find<WalletLogic>();
+  final _searchCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final isLoading = logic.isLoadingMarket.value;
-      final list = logic.marketList;
-      if (isLoading && list.isEmpty) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      if (list.isEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.show_chart, size: 48.w, color: Styles.c_8E9AB0),
-              SizedBox(height: 12.h),
-              Text('暂无行情数据',
-                  style: TextStyle(color: Styles.c_8E9AB0, fontSize: 14.sp)),
-              SizedBox(height: 16.h),
-              TextButton(
-                onPressed: logic.refreshMarketList,
-                child: const Text('刷新'),
+    return Column(
+      children: [
+        _buildSearchBar(),
+        _buildSortBar(),
+        Expanded(
+          child: Obx(() {
+            final isLoading = logic.isLoadingMarket.value;
+            final list = logic.filteredSortedMarketList;
+            if (isLoading && logic.marketList.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (logic.marketList.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.show_chart, size: 48.w, color: Styles.c_8E9AB0),
+                    SizedBox(height: 12.h),
+                    Text('暂无行情数据',
+                        style: TextStyle(color: Styles.c_8E9AB0, fontSize: 14.sp)),
+                    SizedBox(height: 16.h),
+                    TextButton(onPressed: logic.refreshMarketList, child: const Text('刷新')),
+                  ],
+                ),
+              );
+            }
+            if (list.isEmpty) {
+              return Center(
+                child: Text('没有匹配的币种',
+                    style: TextStyle(color: Styles.c_8E9AB0, fontSize: 14.sp)),
+              );
+            }
+            return RefreshIndicator(
+              onRefresh: logic.refreshMarketList,
+              child: ListView.builder(
+                padding: EdgeInsets.only(top: 4.h, bottom: 24.h),
+                itemCount: list.length,
+                itemBuilder: (_, i) => _buildMarketRow(list[i]),
               ),
-            ],
-          ),
-        );
-      }
-      return RefreshIndicator(
-        onRefresh: logic.refreshMarketList,
-        child: ListView.builder(
-          padding: EdgeInsets.symmetric(vertical: 8.h),
-          itemCount: list.length,
-          itemBuilder: (_, i) => _buildMarketRow(list[i]),
+            );
+          }),
         ),
-      );
-    });
+      ],
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 0),
+      child: Container(
+        height: 40.h,
+        decoration: BoxDecoration(
+          color: Styles.c_FFFFFF,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: Styles.c_E8EAEF),
+        ),
+        child: TextField(
+          controller: _searchCtrl,
+          onChanged: (v) => logic.marketSearchQuery.value = v,
+          style: TextStyle(fontSize: 14.sp, color: Styles.c_0C1C33),
+          decoration: InputDecoration(
+            hintText: '搜索币种',
+            hintStyle: TextStyle(fontSize: 14.sp, color: Styles.c_8E9AB0),
+            prefixIcon: Icon(Icons.search, size: 18.w, color: Styles.c_8E9AB0),
+            suffixIcon: Obx(() => logic.marketSearchQuery.value.isNotEmpty
+                ? GestureDetector(
+                    onTap: () {
+                      _searchCtrl.clear();
+                      logic.marketSearchQuery.value = '';
+                    },
+                    child: Icon(Icons.close, size: 16.w, color: Styles.c_8E9AB0),
+                  )
+                : const SizedBox.shrink()),
+            border: InputBorder.none,
+            contentPadding: EdgeInsets.symmetric(vertical: 10.h),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSortBar() {
+    const options = [
+      ('市值', 'marketCap'),
+      ('涨跌幅', 'change24h'),
+      ('成交量', 'volume'),
+      ('价格', 'price'),
+    ];
+    return Obx(() => Padding(
+          padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 4.h),
+          child: Row(
+            children: options.map((opt) {
+              final (label, key) = opt;
+              final isActive = logic.marketSortBy.value == key;
+              final asc = logic.marketSortAsc.value;
+              return GestureDetector(
+                onTap: () {
+                  if (isActive) {
+                    logic.marketSortAsc.value = !asc;
+                  } else {
+                    logic.marketSortBy.value = key;
+                    logic.marketSortAsc.value = false;
+                  }
+                },
+                child: Container(
+                  margin: EdgeInsets.only(right: 8.w),
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                  decoration: BoxDecoration(
+                    color: isActive
+                        ? Styles.c_0089FF.withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(8.r),
+                    border: Border.all(
+                      color: isActive ? Styles.c_0089FF : Styles.c_E8EAEF,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: isActive ? Styles.c_0089FF : Styles.c_8E9AB0,
+                          fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                      if (isActive) ...[
+                        SizedBox(width: 2.w),
+                        Icon(
+                          asc ? Icons.arrow_upward : Icons.arrow_downward,
+                          size: 11.w,
+                          color: Styles.c_0089FF,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ));
   }
 
   Widget _buildMarketRow(CoinMarketData coin) {
     final isPositive = coin.change24h >= 0;
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       child: Row(
         children: [
-          Container(
-            width: 40.w,
-            height: 40.w,
-            decoration: BoxDecoration(
-              color: Styles.c_0089FF.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: Center(
-              child: Text(
-                coin.symbol.substring(0, coin.symbol.length.clamp(0, 3)),
-                style: TextStyle(
-                  fontSize: 11.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Styles.c_0089FF,
-                ),
-              ),
-            ),
-          ),
+          _CoinIcon(imageUrl: coin.image, symbol: coin.symbol),
           SizedBox(width: 12.w),
           Expanded(
             child: Column(
@@ -504,10 +609,9 @@ class _WalletMarketTab extends StatelessWidget {
                 Text(
                   coin.symbol,
                   style: TextStyle(
-                    fontSize: 15.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Styles.c_0C1C33,
-                  ),
+                      fontSize: 15.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Styles.c_0C1C33),
                 ),
                 Text(
                   coin.name,
@@ -522,10 +626,9 @@ class _WalletMarketTab extends StatelessWidget {
               Text(
                 '\$${_formatPrice(coin.price)}',
                 style: TextStyle(
-                  fontSize: 15.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Styles.c_0C1C33,
-                ),
+                    fontSize: 15.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Styles.c_0C1C33),
               ),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
@@ -555,6 +658,49 @@ class _WalletMarketTab extends StatelessWidget {
     if (p >= 1000) return p.toStringAsFixed(2);
     if (p >= 1) return p.toStringAsFixed(4);
     return p.toStringAsFixed(6);
+  }
+}
+
+class _CoinIcon extends StatelessWidget {
+  final String imageUrl;
+  final String symbol;
+
+  const _CoinIcon({required this.imageUrl, required this.symbol});
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = Container(
+      width: 40.w,
+      height: 40.w,
+      decoration: BoxDecoration(
+        color: Styles.c_0089FF.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20.r),
+      ),
+      child: Center(
+        child: Text(
+          symbol.substring(0, symbol.length.clamp(0, 3)),
+          style: TextStyle(
+              fontSize: 11.sp,
+              fontWeight: FontWeight.bold,
+              color: Styles.c_0089FF),
+        ),
+      ),
+    );
+
+    if (imageUrl.isEmpty) return fallback;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20.r),
+      child: Image.network(
+        imageUrl,
+        width: 40.w,
+        height: 40.w,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => fallback,
+        loadingBuilder: (_, child, progress) =>
+            progress == null ? child : fallback,
+      ),
+    );
   }
 }
 
@@ -714,6 +860,58 @@ class _WalletSettingsSheetState extends State<_WalletSettingsSheet> {
                                     color: Styles.c_0089FF, size: 20.w),
                             ],
                           ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                }),
+                SizedBox(height: 20.h),
+                Text(
+                  '管理链',
+                  style: TextStyle(
+                      fontSize: 13.sp,
+                      color: Styles.c_8E9AB0,
+                      fontWeight: FontWeight.w500),
+                ),
+                SizedBox(height: 10.h),
+                Obx(() {
+                  final enabled = logic.settings.value.enabledChainKeys;
+                  final mainnetKeys = chains.entries
+                      .where((e) => !e.value.isTestnet)
+                      .map((e) => e.key)
+                      .toList();
+                  return Column(
+                    children: mainnetKeys.map((key) {
+                      final cfg = chains[key]!;
+                      final isOn = enabled.contains(key);
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 8.h),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 16.w, vertical: 12.h),
+                        decoration: BoxDecoration(
+                          color: Styles.c_F8F9FA,
+                          borderRadius: BorderRadius.circular(12.r),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              cfg.name,
+                              style: TextStyle(
+                                  fontSize: 15.sp, color: Styles.c_0C1C33),
+                            ),
+                            SizedBox(width: 8.w),
+                            Text(
+                              cfg.symbol,
+                              style: TextStyle(
+                                  fontSize: 12.sp, color: Styles.c_8E9AB0),
+                            ),
+                            const Spacer(),
+                            Switch(
+                              value: isOn,
+                              activeThumbColor: Styles.c_0089FF,
+                              onChanged: (_) => logic.toggleChain(key),
+                            ),
+                          ],
                         ),
                       );
                     }).toList(),

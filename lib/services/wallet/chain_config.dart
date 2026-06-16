@@ -203,10 +203,10 @@ const chains = <String, ChainConfig>{
   'bsc_testnet': ChainConfig(
     chainId: 97,
     rpcs: [
-      'https://rpc.ankr.com/bsc_testnet_chapel', // supports eth_getLogs up to 10k blocks
       'https://data-seed-prebsc-1-s1.binance.org:8545',
       'https://data-seed-prebsc-2-s1.binance.org:8545',
       'https://bsc-testnet.publicnode.com',
+      'https://rpc.ankr.com/bsc_testnet_chapel', // requires API key, keep as last fallback
     ],
     explorer: 'https://api-testnet.bscscan.com/api',
     txExplorerBase: 'https://testnet.bscscan.com/tx/',

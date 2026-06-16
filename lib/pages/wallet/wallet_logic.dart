@@ -28,6 +28,9 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
   final txHistory = <TxRecord>[].obs;
   final tokenHistory = <TxRecord>[].obs;
   final marketList = <CoinMarketData>[].obs;
+  final marketSearchQuery = ''.obs;
+  final marketSortBy = 'marketCap'.obs; // marketCap | change24h | volume | price
+  final marketSortAsc = false.obs;
   final newsList    = <NewsPost>[].obs;
   final hotNewsList = <NewsPost>[].obs;
 
@@ -559,6 +562,52 @@ class WalletLogic extends GetxController with WidgetsBindingObserver {
       }
     }
     return null;
+  }
+
+  Future<void> toggleChain(String chainKey) async {
+    final current = List<String>.from(settings.value.enabledChainKeys);
+    if (current.contains(chainKey)) {
+      if (current.length <= 1) return; // keep at least one chain
+      current.remove(chainKey);
+      if (selectedChainKey.value == chainKey) {
+        selectedChainKey.value = current.first;
+      }
+    } else {
+      current.add(chainKey);
+    }
+    settings.value = settings.value.copyWith(enabledChainKeys: current);
+    await _store.saveSettings(settings.value);
+    unawaited(refreshBalances());
+  }
+
+  List<CoinMarketData> get filteredSortedMarketList {
+    final q = marketSearchQuery.value.trim().toLowerCase();
+    var list = q.isEmpty
+        ? List<CoinMarketData>.from(marketList)
+        : marketList.where((c) =>
+            c.symbol.toLowerCase().contains(q) ||
+            c.name.toLowerCase().contains(q)).toList();
+
+    final asc = marketSortAsc.value;
+    switch (marketSortBy.value) {
+      case 'change24h':
+        list.sort((a, b) => asc
+            ? a.change24h.compareTo(b.change24h)
+            : b.change24h.compareTo(a.change24h));
+      case 'volume':
+        list.sort((a, b) => asc
+            ? a.volume24h.compareTo(b.volume24h)
+            : b.volume24h.compareTo(a.volume24h));
+      case 'price':
+        list.sort((a, b) => asc
+            ? a.price.compareTo(b.price)
+            : b.price.compareTo(a.price));
+      default: // marketCap
+        list.sort((a, b) => asc
+            ? a.marketCap.compareTo(b.marketCap)
+            : b.marketCap.compareTo(a.marketCap));
+    }
+    return list;
   }
 
   // ── Testnet mode ──────────────────────────────────────────────────────────

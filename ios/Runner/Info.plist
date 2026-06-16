@@ -16,7 +16,9 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>F-DEMO</string>
+	<string>IM Wallet</string>
+	<key>CFBundleDisplayName</key>
+	<string>IM Wallet</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

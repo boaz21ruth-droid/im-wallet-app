@@ -11,6 +11,8 @@ import '../receive/wallet_receive_view.dart';
 import '../send/wallet_send_view.dart';
 import '../swap/swap_binding.dart';
 import '../swap/swap_view.dart';
+import '../buy/buy_crypto_page.dart';
+import '../p2p/p2p_hall_page.dart';
 import '../token_detail/wallet_token_detail_view.dart';
 
 class WalletMainView extends StatelessWidget {
@@ -158,6 +160,18 @@ class WalletMainView extends StatelessWidget {
               () => const SwapView(),
               binding: SwapBinding(),
             ),
+          ),
+          _ActionBtn(
+            icon: Icons.add_card_outlined,
+            label: '买币',
+            color: const Color(0xFF10B981),
+            onTap: () => Get.to(() => const BuyCryptoPage()),
+          ),
+          _ActionBtn(
+            icon: Icons.swap_calls,
+            label: 'P2P',
+            color: const Color(0xFF8B5CF6),
+            onTap: () => Get.to(() => const P2PHallPage()),
           ),
           _ActionBtn(
             icon: Icons.lock_outline,
